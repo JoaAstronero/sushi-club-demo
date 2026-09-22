@@ -615,9 +615,9 @@
         recommendedPercent: 3.4,
         // Por defecto: Premio % con tope (auto-indexado a inflación y deducible de IVA/IIBB)
         prizes: [
-          { name: "50% OFF en tu Combo Favorito (Tope $7.000)", type: "PERCENT_CAP", worstCaseCost: 7000, points: 140, isDefault: true },
-          { name: "Combo 15 Piezas Gratis", type: "FIXED", worstCaseCost: 10000, points: 200, isDefault: false },
-          { name: "Postre o Roll chico", type: "FIXED", worstCaseCost: 3500, points: 70, isDefault: false }
+          { name: "50% OFF en tu Combo Favorito (Tope $7.000)", type: "PERCENT_CAP", worstCaseCost: 7000, points: 210, isDefault: true },
+          { name: "Combo 15 Piezas Gratis", type: "FIXED", worstCaseCost: 10000, points: 300, isDefault: false },
+          { name: "Postre o Roll chico", type: "FIXED", worstCaseCost: 3500, points: 110, isDefault: false }
         ]
       },
       client: {
@@ -671,11 +671,11 @@
         document.getElementById('col1-role').innerText = "Paso 2: Operación";
         document.getElementById('caja-status-tag').innerHTML = '<span class="dot-active"></span>Caja 1 · Activa';
 
-        stateB.client.points = 130;
+        stateB.client.points = 200;
         stateB.chatHistory = [{
           type: "recv",
-          text: `¡Hola María! Tenés <b>130 Puntos</b> acumulados.<br>Te faltan solo 10 puntos para tu <b>50% OFF (140 pts)</b>.`,
-          points: 130,
+          text: `¡Hola María! Tenés <b>200 Puntos</b> acumulados.<br>Te faltan solo 10 puntos para tu <b>50% OFF (210 pts)</b>.`,
+          points: 200,
           time: "19:30"
         }];
       } 
@@ -685,11 +685,11 @@
         document.getElementById('col1-role').innerText = "Paso 3: Canje";
         document.getElementById('caja-status-tag').innerHTML = '<span class="dot-active"></span>Caja 1 · Activa';
 
-        stateB.client.points = 150;
+        stateB.client.points = 220;
         stateB.chatHistory = [{
           type: "recv",
-          text: `🎉 <b>¡Meta alcanzada María!</b><br>Tenés <b>150 Puntos</b> disponibles.<br>Podés canjear hoy tu <b>50% OFF (Tope $7.000)</b> en la cuenta.`,
-          points: 150,
+          text: `🎉 <b>¡Meta alcanzada María!</b><br>Tenés <b>220 Puntos</b> disponibles.<br>Podés canjear hoy tu <b>50% OFF (210 pts)</b> o tu <b>Postre / Roll chico (110 pts)</b>.`,
+          points: 220,
           time: "20:00"
         }];
       }
@@ -780,6 +780,7 @@
             <div class="alert-box info">
               <b>Blindaje Actuarial y Legal:</b><br>
               • Podés regalar hasta <b id="txt-cmax">4.8%</b> sin arriesgar margen. Recomendado: <b id="txt-crec" style="color: #56d364;">3.4%</b>.<br>
+              • <b>Redondeo seguro:</b> Puntos redondeados al múltiplo de 10 superior para fijar metas atractivas sin regalar margen.<br>
               • Preaviso legal garantizado: 30 días de gracia antes de actualizar tablas (Ley 24.240).
             </div>
 
@@ -951,8 +952,12 @@
       const vPuntoMax = crec / alpha;
       stateB.config.vPuntoMax = vPuntoMax > 5 ? vPuntoMax : 10;
 
+      // Redondeo estético seguro: siempre hacia arriba al múltiplo de 10 más cercano
+      // (Ceil step = 10 garantiza que R_real <= C_rec, el negocio jamás pierde margen)
+      const roundStep = 10;
       stateB.config.prizes.forEach(p => {
-        p.points = Math.ceil(p.worstCaseCost / stateB.config.vPuntoMax);
+        const rawPts = p.worstCaseCost / stateB.config.vPuntoMax;
+        p.points = Math.ceil(rawPts / roundStep) * roundStep;
       });
 
       const container = document.getElementById('prize-list-container');
