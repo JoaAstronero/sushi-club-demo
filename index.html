@@ -124,7 +124,7 @@
     }
 
     .device {
-      height: 620px;
+      height: 640px;
       background: var(--panel);
       border: 1px solid var(--border);
       border-radius: 16px;
@@ -223,12 +223,12 @@
 
     .input-field {
       width: 100%;
-      padding: 10px 12px;
+      padding: 9px 11px;
       background: #0d0f15;
       border: 1px solid #283044;
       border-radius: 6px;
       color: var(--text);
-      font-size: 0.85rem;
+      font-size: 0.83rem;
       outline: none;
     }
 
@@ -238,7 +238,7 @@
 
     .slider-range {
       width: 100%;
-      margin: 8px 0;
+      margin: 6px 0;
       accent-color: var(--accent);
       cursor: pointer;
     }
@@ -286,7 +286,7 @@
     .alert-box {
       border-radius: 6px;
       padding: 10px 12px;
-      font-size: 0.78rem;
+      font-size: 0.76rem;
       line-height: 1.35;
     }
 
@@ -312,6 +312,34 @@
       background: rgba(56, 139, 253, 0.1);
       border-left: 3px solid #388bfd;
       color: #79c0ff;
+    }
+
+    /* Multi-Premios Lista */
+    .prize-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-top: 4px;
+    }
+
+    .prize-row {
+      background: #0d0f15;
+      border: 1px solid #232838;
+      border-radius: 6px;
+      padding: 8px 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.76rem;
+    }
+
+    .prize-badge {
+      background: #1c2230;
+      color: #56d364;
+      font-weight: 700;
+      padding: 3px 6px;
+      border-radius: 4px;
+      font-size: 0.72rem;
     }
 
     /* WHATSAPP CLIENTE */
@@ -379,6 +407,38 @@
       margin-top: 3px;
     }
 
+    /* Puntos Modelo B */
+    .points-badge {
+      background: #11141c;
+      border: 1px solid #283042;
+      border-radius: 8px;
+      padding: 12px;
+      margin-top: 8px;
+      text-align: center;
+    }
+
+    .points-val {
+      font-size: 1.5rem;
+      font-weight: 800;
+      color: #56d364;
+      margin: 4px 0;
+    }
+
+    .qr-client-img {
+      width: 70px;
+      height: 70px;
+      background: #fff;
+      margin: 6px auto 2px;
+      border-radius: 4px;
+      padding: 4px;
+    }
+
+    .qr-lines {
+      width: 100%;
+      height: 100%;
+      background: repeating-linear-gradient(45deg, #111, #111 4px, #fff 4px, #fff 8px);
+    }
+
     /* Sellos Modelo A */
     .stamps-box {
       background: #11141c;
@@ -423,38 +483,6 @@
       background: #f59e0b;
       color: #000;
       border-color: #f59e0b;
-    }
-
-    /* Puntos Modelo B */
-    .points-badge {
-      background: #11141c;
-      border: 1px solid #283042;
-      border-radius: 8px;
-      padding: 12px;
-      margin-top: 8px;
-      text-align: center;
-    }
-
-    .points-val {
-      font-size: 1.5rem;
-      font-weight: 800;
-      color: #56d364;
-      margin: 4px 0;
-    }
-
-    .qr-client-img {
-      width: 70px;
-      height: 70px;
-      background: #fff;
-      margin: 6px auto 2px;
-      border-radius: 4px;
-      padding: 4px;
-    }
-
-    .qr-lines {
-      width: 100%;
-      height: 100%;
-      background: repeating-linear-gradient(45deg, #111, #111 4px, #fff 4px, #fff 8px);
     }
 
     /* CONTROLES INFERIORES */
@@ -517,7 +545,7 @@
   <div class="top-bar">
     <h1 id="top-title">SUSHI CLUB · SISTEMA DE PUNTOS</h1>
     <div style="font-size: 0.72rem; color: var(--text-muted);" id="top-sub">
-      Configuración segura para el dueño + Caja en segundos
+      Configuración inteligente para el dueño + Caja en segundos
     </div>
   </div>
 
@@ -570,10 +598,10 @@
   </div>
 
   <script>
-    let currentSystem = 'PUNTOS'; // Default en Puntos
+    let currentSystem = 'PUNTOS';
 
     // ==========================================
-    // ESTADO PARA MODELO A (SELLOS / VISITAS)
+    // ESTADO PARA MODELO A (SELLOS)
     // ==========================================
     let activeStoryA = 1;
     const stateA = {
@@ -595,18 +623,23 @@
     // ==========================================
     // ESTADO PARA MODELO B (SISTEMA DE PUNTOS)
     // ==========================================
-    let activeStoryB = 1; // 1: Setup Dueño, 2: Caja DNI+Monto, 3: Canje
+    let activeStoryB = 1;
     const stateB = {
-      viewMode: "ONBOARDING_SETUP", // ONBOARDING_SETUP | CASH_REGISTER | CANJE_READY | PROCESSING | SUCCESS
+      viewMode: "ONBOARDING_SETUP",
       config: {
-        ratioSpend: 1000, // Cada $1000 = 1 punto
-        anchorPrice: 10000,
-        prizePoints: 200,
-        prizeName: "Combo 15 Piezas Gratis",
-        sliderAggressiveness: 70, // 50: Conservador, 70: Recomendado, 100: Generoso
-        marginLevel: 0.65,
+        ratioSpend: 1000, // Cada $1000 = 1 punto (alpha = 0.001)
+        vPuntoMax: 34,    // $34 pesos por punto (V_punto_max)
+        marginPercent: 65,
+        deltaQ: 0.08,
+        sliderFactor: 0.70,
         maxSafePercent: 4.8,
-        recommendedPercent: 3.4
+        recommendedPercent: 3.4,
+        // Catálogo multi-premio abierto
+        prizes: [
+          { name: "Combo 15 Piezas", type: "FIXED", worstCaseCost: 10000, points: 200 },
+          { name: "30% OFF en tu compra (Tope $5.000)", type: "PERCENT_CAP", worstCaseCost: 5000, points: 100 },
+          { name: "Postre o Roll chico", type: "FIXED", worstCaseCost: 3500, points: 70 }
+        ]
       },
       client: {
         dni: "38.123.456",
@@ -632,18 +665,18 @@
         startStoryA(activeStoryA);
       } else {
         document.getElementById('top-title').innerText = "SUSHI CLUB · SISTEMA DE PUNTOS";
-        document.getElementById('top-sub').innerText = "Configuración segura para el dueño + Caja en segundos";
+        document.getElementById('top-sub').innerText = "Configuración inteligente para el dueño + Caja en segundos";
         startStoryB(activeStoryB);
       }
     }
 
     // ==========================================
-    // LOGICA MODELO B: PUNTOS REDISEÑADO
+    // LOGICA MODELO B: PUNTOS PULIDO
     // ==========================================
     function startStoryB(stepId) {
       activeStoryB = stepId;
 
-      if (stepId === 1) { // 1. Configuración del Dueño (Setup en 2 minutos)
+      if (stepId === 1) { // 1. Configuración del Dueño
         stateB.viewMode = "ONBOARDING_SETUP";
         document.getElementById('col1-title').innerText = "Configuración del Dueño";
         document.getElementById('col1-role').innerText = "Paso 1: Setup";
@@ -651,7 +684,7 @@
 
         stateB.chatHistory = [{
           type: "recv",
-          text: `¡Hola María! Ya sos parte del Club.<br>Tu saldo inicial es de <b>0 Puntos</b>.<br>Sumás 1 punto cada <b>$${stateB.config.ratioSpend.toLocaleString('es-AR')}</b> gastados.<br>Premio: <b>${stateB.config.prizeName}</b> (${stateB.config.prizePoints} pts).`,
+          text: `¡Hola María! Ya sos parte del Club Sushi.<br>Tu saldo inicial es de <b>0 Puntos</b>.<br>Sumás 1 punto cada <b>$${stateB.config.ratioSpend.toLocaleString('es-AR')}</b> gastados.<br>Tenés 3 beneficios disponibles para canjear cuando quieras.`,
           points: 0,
           time: "19:00"
         }];
@@ -665,7 +698,7 @@
         stateB.client.points = 180;
         stateB.chatHistory = [{
           type: "recv",
-          text: `¡Hola María! Tenés <b>180 Puntos</b> acumulados.<br>Faltan 20 puntos para tu <b>${stateB.config.prizeName}</b>.`,
+          text: `¡Hola María! Tenés <b>180 Puntos</b> acumulados.<br>Te faltan solo 20 puntos para tu <b>Combo 15 Piezas (200 pts)</b> o ya podés usar tu <b>30% OFF (100 pts)</b>.`,
           points: 180,
           time: "19:30"
         }];
@@ -679,7 +712,7 @@
         stateB.client.points = 210;
         stateB.chatHistory = [{
           type: "recv",
-          text: `🎉 <b>¡Llegaste a la meta María!</b><br>Tenés <b>210 Puntos</b> disponibles.<br>Ya podés canjear tu <b>${stateB.config.prizeName} (${stateB.config.prizePoints} pts)</b> en caja.`,
+          text: `🎉 <b>¡Llegaste a la meta María!</b><br>Tenés <b>210 Puntos</b> disponibles.<br>Elegí en caja qué beneficio querés canjear hoy.`,
           points: 210,
           time: "20:00"
         }];
@@ -710,15 +743,31 @@
       const c = stateB.client;
       const cfg = stateB.config;
 
-      // 1. CONFIGURACIÓN DEL DUEÑO (CERO JERGA)
+      // 1. CONFIGURACIÓN DEL DUEÑO (TOTALMENTE PULIDA)
       if (stateB.viewMode === "ONBOARDING_SETUP") {
+        let prizeRowsHtml = '';
+        cfg.prizes.forEach((p, idx) => {
+          prizeRowsHtml += `
+            <div class="prize-row">
+              <div>
+                <b>${p.name}</b><br>
+                <span style="color: var(--text-muted); font-size: 0.68rem;">
+                  ${p.type === 'FIXED' ? 'Producto de regalo' : 'Descuento %'} · Tope peor caso: $${p.worstCaseCost.toLocaleString('es-AR')}
+                </span>
+              </div>
+              <span class="prize-badge">${p.points} PTS</span>
+            </div>
+          `;
+        });
+
         el.innerHTML = `
           <div class="card">
             <div style="font-weight: 700; font-size: 0.92rem;">Configurá tu Programa en 2 minutos</div>
-            <p style="font-size: 0.74rem; color: var(--text-muted);">
+            <p style="font-size: 0.73rem; color: var(--text-muted);">
               Te decimos exactamente cuánto podés regalar para ganar clientes sin arriesgar tu ganancia.
             </p>
 
+            <!-- RUBRO CON IMPACTO EXPLICADO -->
             <div>
               <label style="font-size: 0.72rem; color: var(--text-muted); font-weight: 600;">Rubro de tu Negocio:</label>
               <select class="input-field" id="cfg-rubro" onchange="updateSetupMath()">
@@ -726,52 +775,57 @@
                 <option value="0.12">Servicios (Barbería, Estética, Lavadero)</option>
                 <option value="0.05">Comercio / Tienda de Ropa</option>
               </select>
+              <div style="font-size: 0.68rem; color: #79c0ff; margin-top: 3px;" id="txt-rubro-impact">
+                ℹ️ Los negocios gastronómicos logran un <b>8% más de visitas repetidas</b> con puntos.
+              </div>
             </div>
 
+            <!-- MARGEN LIBRE CON TIP DE PEOR CASO -->
             <div>
-              <label style="font-size: 0.72rem; color: var(--text-muted); font-weight: 600;">Nivel de Margen de Ganancia:</label>
-              <select class="input-field" id="cfg-margin-level" onchange="updateSetupMath()">
-                <option value="0.50">Normal (Aprox 50%)</option>
-                <option value="0.65" selected>Alto gastronómico (Aprox 65%)</option>
-                <option value="0.75">Muy alto / Especialidad (Aprox 75%)</option>
-              </select>
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <label style="font-size: 0.72rem; color: var(--text-muted); font-weight: 600;">Margen de Ganancia Estimado (%):</label>
+                <span style="font-size: 0.68rem; color: var(--text-muted);">Sugerido: 65%</span>
+              </div>
+              <input type="number" class="input-field" id="cfg-margin-input" value="${cfg.marginPercent}" oninput="updateSetupMath()">
+              <div style="font-size: 0.67rem; color: var(--text-muted); margin-top: 2px;">
+                *Si tus productos varían mucho, poné el margen del que menos te conviene regalar (el más bajo).
+              </div>
             </div>
 
+            <!-- SLIDER EXPLICADO: QUÉ MUEVE REALMENTE -->
             <div>
               <div style="display: flex; justify-content: space-between; font-size: 0.72rem;">
                 <span style="color: var(--text-muted); font-weight: 600;">Estrategia de Beneficio:</span>
-                <span style="font-weight: 700; color: #56d364;" id="label-slider-mode">Recomendada (3.4% retorno)</span>
+                <span style="font-weight: 700; color: #56d364;" id="label-slider-mode">Equilibrada (3.4% retorno)</span>
               </div>
               <input type="range" class="slider-range" id="cfg-slider" min="50" max="100" value="70" step="10" oninput="updateSetupMath()">
-              <div style="display: flex; justify-content: space-between; font-size: 0.65rem; color: var(--text-muted);">
-                <span>Conservadora</span>
-                <span>Equilibrada</span>
-                <span>Generosa</span>
+              <div style="font-size: 0.66rem; color: var(--text-muted); line-height: 1.25;" id="txt-slider-explanation">
+                <b>Equilibrada:</b> Dejás un colchón de seguridad por si el programa rinde menos de lo proyectado.
               </div>
             </div>
 
-            <div class="alert-box info" style="font-size: 0.76rem;">
-              <b>Resultado Seguro:</b><br>
+            <!-- DIAGNÓSTICO EN LENGUAJE CLARO -->
+            <div class="alert-box info">
+              <b>Resultado de Seguridad:</b><br>
               Podés regalar hasta <b id="txt-cmax">4.8%</b> de tus ventas sin arriesgar margen.<br>
-              Te sugerimos empezar en <b id="txt-crec" style="color: #56d364;">3.4%</b> para tener un colchón de seguridad.
+              Te sugerimos empezar en <b id="txt-crec" style="color: #56d364;">3.4%</b> como protección.
             </div>
 
+            <!-- LISTA MULTI-PREMIO ABIERTA -->
             <div>
-              <label style="font-size: 0.72rem; color: var(--text-muted); font-weight: 600;">¿Qué premio querés regalar a clientes fieles?</label>
-              <div style="display: flex; gap: 6px; margin-top: 4px;">
-                <input type="text" class="input-field" style="flex: 2;" id="cfg-prizename" value="Combo 15 Piezas">
-                <input type="number" class="input-field" style="flex: 1;" id="cfg-prizeprice" value="10000" oninput="updateSetupMath()" title="Precio aproximado de venta">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
+                <label style="font-size: 0.72rem; color: var(--text-muted); font-weight: 600;">Catálogo de Beneficios Calculados:</label>
+                <span style="font-size: 0.68rem; color: #56d364;">Regla: $1.000 = 1 pt</span>
               </div>
+              <div class="prize-list" id="prize-list-container">
+                ${prizeRowsHtml}
+              </div>
+              <button class="btn-outline" style="margin-top: 6px; padding: 5px; font-size: 0.7rem;" onclick="promptAddCustomPrize()">
+                + Agregar otro beneficio (Canje fijo o Descuento %)
+              </button>
             </div>
 
-            <div class="metric-box" style="margin-top: 2px;">
-              <span style="font-size: 0.75rem; color: var(--text-muted);">Regla generada:</span>
-              <span style="font-size: 0.85rem; font-weight: 700; color: #56d364;" id="txt-final-rule">
-                $1.000 = 1 pt · Premio: 200 pts
-              </span>
-            </div>
-
-            <button class="btn btn-action" onclick="applySetupAndGoToCashier()">
+            <button class="btn btn-action" style="margin-top: 6px;" onclick="applySetupAndGoToCashier()">
               [ APLICAR Y PROBAR COBRO EN CAJA → ]
             </button>
           </div>
@@ -779,7 +833,7 @@
         return;
       }
 
-      // 2. CAJA RÁPIDA (CONEXIÓN VIVA CON EL PASO 1)
+      // 2. CAJA RÁPIDA (CONEXIÓN VIVA)
       if (stateB.viewMode === "CASH_REGISTER") {
         el.innerHTML = `
           <div class="card">
@@ -805,7 +859,7 @@
             </div>
 
             <div class="metric-box">
-              <span style="font-size: 0.78rem; color: var(--text-muted);">Puntos calculados automáticamente:</span>
+              <span style="font-size: 0.78rem; color: var(--text-muted);">Puntos a generar automáticamente:</span>
               <span style="font-size: 1.25rem; font-weight: 800; color: #56d364;" id="calc-pts">+12 pts</span>
             </div>
 
@@ -818,8 +872,25 @@
         return;
       }
 
-      // 3. CANJE DE PUNTOS
+      // 3. CANJE MULTI-PREMIO
       if (stateB.viewMode === "CANJE_READY") {
+        let optionsHtml = '';
+        cfg.prizes.forEach((p, idx) => {
+          const canAfford = c.points >= p.points;
+          optionsHtml += `
+            <div class="prize-row" style="margin-bottom: 6px;">
+              <div>
+                <b>${p.name}</b><br>
+                <span style="font-size: 0.68rem; color: var(--text-muted);">Costo: ${p.points} Puntos</span>
+              </div>
+              <button class="btn btn-action" style="width: auto; padding: 6px 12px; font-size: 0.72rem; background: ${canAfford ? 'var(--success)' : '#232836'};" 
+                ${canAfford ? `onclick="ejecutarCanjeItemB(${idx})"` : 'disabled'}>
+                ${canAfford ? 'Canjear' : 'Faltan pts'}
+              </button>
+            </div>
+          `;
+        });
+
         el.innerHTML = `
           <div class="card">
             <div style="font-size: 1.05rem; font-weight: 700;">${c.name}</div>
@@ -830,16 +901,13 @@
               <span style="font-size: 1.2rem; font-weight: 800; color: #56d364;">${c.points} Puntos</span>
             </div>
 
-            <div class="alert-box success">
-              🎁 <b>BENEFICIO DISPONIBLE PARA CANJEAR</b><br>
-              Premio: <b>${cfg.prizeName}</b><br>
-              Costo de canje: <b>${cfg.prizePoints} Puntos</b>
+            <div style="font-size: 0.75rem; color: var(--text-muted); margin: 4px 0 6px;">
+              Elegí qué beneficio canjea el cliente en esta compra:
             </div>
 
-            <button class="btn btn-action" style="background: var(--success);" onclick="ejecutarCanjePuntosB()">
-              [ DESCONTAR ${cfg.prizePoints} PTS Y ENTREGAR COMBO ]
-            </button>
-            <button class="btn btn-outline" onclick="startStoryB(2)">Volver a Cobro de Caja</button>
+            ${optionsHtml}
+
+            <button class="btn btn-outline" style="margin-top: 6px;" onclick="startStoryB(2)">Volver a Cobro de Caja</button>
           </div>
         `;
         return;
@@ -878,10 +946,16 @@
 
     function updateSetupMath() {
       const dq = Number(document.getElementById('cfg-rubro').value);
-      const m = Number(document.getElementById('cfg-margin-level').value);
+      const m = (Number(document.getElementById('cfg-margin-input').value) || 65) / 100;
       const sliderVal = Number(document.getElementById('cfg-slider').value);
-      const prizePrice = Number(document.getElementById('cfg-prizeprice').value) || 10000;
 
+      // Explicación de impacto del rubro
+      let rubroTxt = "Los negocios gastronómicos logran un <b>8% más de visitas repetidas</b> con puntos.";
+      if (dq === 0.12) rubroTxt = "Los servicios recurrentes (barberías, lavaderos) logran hasta un <b>12% más de recurrencia</b>.";
+      else if (dq === 0.05) rubroTxt = "Las tiendas de indumentaria y retail logran un <b>5% de incremento de recompra</b>.";
+      document.getElementById('txt-rubro-impact').innerHTML = `ℹ️ ${rubroTxt}`;
+
+      // Cálculo de C_max y C_rec
       const cmax = (m * dq) / (1 + dq);
       const s = sliderVal / 100;
       const crec = cmax * s;
@@ -892,31 +966,70 @@
       document.getElementById('txt-cmax').innerText = `${stateB.config.maxSafePercent}%`;
       document.getElementById('txt-crec').innerText = `${stateB.config.recommendedPercent}%`;
 
+      // Copy del slider según factor de seguridad
       let modeTxt = "Equilibrada";
-      if (sliderVal <= 50) modeTxt = "Conservadora";
-      else if (sliderVal >= 90) modeTxt = "Generosa";
+      let expTxt = "<b>Equilibrada:</b> Dejás un colchón de seguridad por si el programa rinde menos de lo proyectado.";
+      if (sliderVal <= 50) {
+        modeTxt = "Conservadora";
+        expTxt = "<b>Conservadora:</b> Te guardás el máximo margen de seguridad por si el cliente no vuelve tan seguido.";
+      } else if (sliderVal >= 90) {
+        modeTxt = "Generosa";
+        expTxt = "<b>Generosa:</b> Confiás en la proyección y usás casi todo el margen seguro que tu local permite.";
+      }
       document.getElementById('label-slider-mode').innerText = `${modeTxt} (${stateB.config.recommendedPercent}% retorno)`;
+      document.getElementById('txt-slider-explanation').innerHTML = expTxt;
 
-      // Regla intuitiva: redondeo limpio
-      let spendForPoint = 1000;
-      if (prizePrice <= 5000) spendForPoint = 500;
-      else if (prizePrice >= 20000) spendForPoint = 2000;
+      // REGLA UNIFICADORA: V_punto_max = C_rec / alpha
+      // Fijamos alpha = 1 / 1000 ($1.000 = 1 pt)
+      stateB.config.ratioSpend = 1000;
+      const alpha = 1 / 1000;
+      const vPuntoMax = crec / alpha; // Pesos de seguridad por punto
+      stateB.config.vPuntoMax = vPuntoMax > 5 ? vPuntoMax : 10;
 
-      const totalSpendTarget = Math.round(prizePrice / (crec / 0.70));
-      const targetPoints = Math.round(totalSpendTarget / spendForPoint);
+      // Recalcular puntos de los premios en vivo
+      stateB.config.prizes.forEach(p => {
+        p.points = Math.ceil(p.worstCaseCost / stateB.config.vPuntoMax);
+      });
 
-      stateB.config.ratioSpend = spendForPoint;
-      stateB.config.prizePoints = targetPoints > 0 ? targetPoints : 100;
-      stateB.config.anchorPrice = prizePrice;
-      stateB.config.prizeName = document.getElementById('cfg-prizename').value || "Premio";
+      // Si estamos en la vista de setup, refrescar la lista
+      const container = document.getElementById('prize-list-container');
+      if (container) {
+        let rowsHtml = '';
+        stateB.config.prizes.forEach(p => {
+          rowsHtml += `
+            <div class="prize-row">
+              <div>
+                <b>${p.name}</b><br>
+                <span style="color: var(--text-muted); font-size: 0.68rem;">
+                  ${p.type === 'FIXED' ? 'Producto de regalo' : 'Descuento %'} · Tope peor caso: $${p.worstCaseCost.toLocaleString('es-AR')}
+                </span>
+              </div>
+              <span class="prize-badge">${p.points} PTS</span>
+            </div>
+          `;
+        });
+        container.innerHTML = rowsHtml;
+      }
+    }
 
-      document.getElementById('txt-final-rule').innerText = 
-        `$${spendForPoint.toLocaleString('es-AR')} = 1 pt · Premio: ${stateB.config.prizePoints} pts`;
+    function promptAddCustomPrize() {
+      const name = prompt("Nombre del beneficio (ej: 'Café chico' o '20% OFF en salón'):", "Café con medialunas");
+      if (!name) return;
+      const cost = Number(prompt("Costo máximo en el peor caso en pesos ($) (ej: precio del café o tope del descuento):", "3000")) || 3000;
+      
+      const pts = Math.ceil(cost / stateB.config.vPuntoMax);
+      stateB.config.prizes.push({
+        name: name,
+        type: "FIXED",
+        worstCaseCost: cost,
+        points: pts
+      });
+      renderB();
     }
 
     function applySetupAndGoToCashier() {
       updateSetupMath();
-      startStoryB(2); // Salta a Caja
+      startStoryB(2);
     }
 
     function updateCalculatedPointsLive() {
@@ -940,7 +1053,7 @@
 
         stateB.chatHistory.push({
           type: "recv",
-          text: `🎉 <b>¡Sumaste ${pts} Puntos!</b><br>Por tu compra de $${spend.toLocaleString('es-AR')}.<br>Tu saldo actualizado es de <b>${stateB.client.points} Puntos</b>.<br>${stateB.client.points >= stateB.config.prizePoints ? '🎁 ¡Ya podés canjear tu ' + stateB.config.prizeName + '!' : 'Te faltan ' + (stateB.config.prizePoints - stateB.client.points) + ' pts para tu premio.'}`,
+          text: `🎉 <b>¡Sumaste ${pts} Puntos!</b><br>Por tu compra de $${spend.toLocaleString('es-AR')}.<br>Tu saldo actualizado es de <b>${stateB.client.points} Puntos</b>.<br>Podés canjearlos por cualquiera de los beneficios del Club.`,
           points: stateB.client.points,
           time: "20:30"
         });
@@ -949,17 +1062,18 @@
       }, 1000);
     }
 
-    function ejecutarCanjePuntosB() {
+    function ejecutarCanjeItemB(prizeIndex) {
+      const prize = stateB.config.prizes[prizeIndex];
       stateB.viewMode = "PROCESSING";
       renderB();
 
       setTimeout(() => {
-        stateB.client.points -= stateB.config.prizePoints;
+        stateB.client.points -= prize.points;
         stateB.viewMode = "CASH_REGISTER";
 
         stateB.chatHistory.push({
           type: "recv",
-          text: `🍣 <b>¡Canje realizado con éxito!</b><br>Utilizaste ${stateB.config.prizePoints} puntos para tu <b>${stateB.config.prizeName}</b>.<br>Tu nuevo saldo restante es de <b>${stateB.client.points} Puntos</b>.`,
+          text: `🍣 <b>¡Canje realizado con éxito!</b><br>Utilizaste ${prize.points} puntos para tu <b>${prize.name}</b>.<br>Tu nuevo saldo restante es de <b>${stateB.client.points} Puntos</b>.`,
           points: stateB.client.points,
           time: "20:35"
         });
@@ -980,6 +1094,330 @@
               <div class="points-val">${msg.points} PTS</div>
               <div class="qr-client-img"><div class="qr-lines"></div></div>
               <div style="font-size: 0.65rem; color: #8b949e; margin-top: 3px;">Mostrá tu QR o decí tu DNI en caja</div>
+            </div>
+            <div class="wa-time">${msg.time} ✓✓</div>
+          </div>
+        `;
+      });
+      el.innerHTML = html;
+      el.scrollTop = el.scrollHeight;
+    }
+
+    // ==========================================
+    // LOGICA MODELO A: SELLOS (Mantenida intacta)
+    // ==========================================
+    function startStoryA(storyId) {
+      activeStoryA = storyId;
+      stateA.cajaMode = "SCAN_READY";
+
+      if (storyId === 1) {
+        stateA.client = {
+          name: "María González",
+          phone: "+54 9 351 512-3456",
+          visits: 3,
+          max: 8,
+          hasAvailablePrize: false,
+          prizeCode: "SUSHI-8X91B",
+          redeemedAt: null,
+          isReusedCodeAttempt: false,
+          isImmediateSecondBuyStory: false
+        };
+        stateA.chatHistory = [{
+          type: "recv",
+          text: "¡Hola María! Ya sos parte del Club.<br>⭐ Tenés <b>3 / 8 visitas</b> registradas.<br>Faltan 5 para tu Combo Gratis.",
+          snapshotVisits: 3,
+          time: "20:10"
+        }];
+      } else if (storyId === 2) {
+        stateA.client = {
+          name: "María González",
+          phone: "+54 9 351 512-3456",
+          visits: 4,
+          max: 8,
+          hasAvailablePrize: false,
+          prizeCode: "SUSHI-8X91B",
+          redeemedAt: null,
+          isReusedCodeAttempt: false,
+          isImmediateSecondBuyStory: true
+        };
+        stateA.chatHistory = [
+          { type: "recv", text: "¡Hola María! ⭐ Tenés <b>3 / 8 visitas</b> registradas.", snapshotVisits: 3, time: "20:10" },
+          { type: "recv", text: "🎉 <b>¡Visita acreditada!</b><br>Tu tarjeta ahora está en <b>4 / 8 ⭐</b>.", snapshotVisits: 4, time: "20:45" }
+        ];
+      } else if (storyId === 3) {
+        stateA.client = {
+          name: "María González",
+          phone: "+54 9 351 512-3456",
+          visits: 8,
+          max: 8,
+          hasAvailablePrize: true,
+          prizeCode: "SUSHI-8X91B",
+          redeemedAt: null,
+          isReusedCodeAttempt: false,
+          isImmediateSecondBuyStory: false
+        };
+        stateA.chatHistory = [{
+          type: "recv",
+          text: "🎉 <b>¡FELICITACIONES MARÍA!</b><br>Llegaste a tus <b>8 / 8 visitas ⭐</b>.<br><br>🎁 Tenés guardado en tu cuenta:<br><b>Combo 15 Piezas Gratis</b> (<code>SUSHI-8X91B</code>).",
+          snapshotVisits: 8,
+          time: "Ayer · 21:00"
+        }];
+      } else if (storyId === 4) {
+        stateA.client = {
+          name: "Cliente Desconocido",
+          phone: "+54 9 351 987-6543",
+          visits: 0,
+          max: 8,
+          hasAvailablePrize: false,
+          prizeCode: "SUSHI-8X91B",
+          redeemedAt: "Ayer · 21:30",
+          isReusedCodeAttempt: true,
+          isImmediateSecondBuyStory: false
+        };
+        stateA.chatHistory = [{
+          type: "recv",
+          text: "🍣 <b>¡Premio entregado!</b><br>Canjeaste tu Combo 15 Piezas.<br>El código <code>SUSHI-8X91B</code> ha quedado inutilizado.",
+          snapshotVisits: 0,
+          time: "Ayer · 21:30"
+        }];
+      }
+
+      renderControlsA();
+      renderA();
+    }
+
+    function renderControlsA() {
+      document.getElementById('controls-panel').innerHTML = `
+        <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: 600;">Historias (Sellos):</span>
+        <div class="controls-btns">
+          <button class="btn-ctrl ${activeStoryA === 1 ? 'active' : ''}" onclick="startStoryA(1)">1. Normal (3/8)</button>
+          <button class="btn-ctrl ${activeStoryA === 2 ? 'active' : ''}" onclick="startStoryA(2)">2. Doble Compra Sucesiva</button>
+          <button class="btn-ctrl ${activeStoryA === 3 ? 'active' : ''}" onclick="startStoryA(3)">3. Premio Guardado (8/8)</button>
+          <button class="btn-ctrl ${activeStoryA === 4 ? 'active' : ''}" onclick="startStoryA(4)">4. Cupón Ya Quemado</button>
+        </div>
+      `;
+    }
+
+    function renderA() {
+      renderCajaA();
+      renderWhatsAppA();
+    }
+
+    function renderCajaA() {
+      const el = document.getElementById('caja-view');
+      const c = stateA.client;
+
+      if (stateA.cajaMode === "SCAN_READY") {
+        el.innerHTML = `
+          <div class="card">
+            <div style="font-weight: 700; font-size: 0.9rem;">Escanear Cliente</div>
+            <p style="font-size: 0.75rem; color: var(--text-muted);">Apuntá la cámara al QR de la tarjeta de WhatsApp</p>
+            <div class="scanner-mock">
+              <div class="scan-laser"></div>
+              <div style="font-size: 1.5rem;">📷</div>
+              <div>Cámara activa · Esperando código...</div>
+            </div>
+            <button class="btn btn-action" onclick="executeScanByStoryA()">
+              [ Simular lectura de QR ]
+            </button>
+          </div>
+        `;
+        return;
+      }
+
+      if (stateA.cajaMode === "CLIENT_DETECTED") {
+        let prizeAlert = '';
+        let actionButtons = '';
+
+        if (c.hasAvailablePrize) {
+          prizeAlert = `
+            <div class="alert-box success">
+              🎁 <b>CLIENTE CON BENEFICIO DISPONIBLE</b><br>
+              Tiene guardado: <b>Combo 15 Piezas Gratis</b> (<code>${c.prizeCode}</code>).
+            </div>
+          `;
+          actionButtons = `
+            <button class="btn btn-action" style="background: var(--success);" onclick="stateA.cajaMode = 'CANJE_CONFIRM'; renderA();">
+              [ 1. Canjear Premio Hoy (Combo Gratis) ]
+            </button>
+            <button class="btn btn-action" style="margin-top: 4px;" onclick="sumarVisitaConservandoPremioA()">
+              [ 2. Pagar normal y Sumar Visita (Guardar Premio) ]
+            </button>
+          `;
+        } else {
+          actionButtons = `
+            <button class="btn btn-action" onclick="confirmarCompraA()">
+              [ + SUMAR VISITA ]
+            </button>
+          `;
+        }
+
+        el.innerHTML = `
+          <div class="card">
+            <div style="font-size: 1.05rem; font-weight: 700;">${c.name}</div>
+            <div class="metric-box">
+              <span style="font-size: 0.78rem; color: var(--text-muted);">Estado:</span>
+              <span style="font-size: 1.1rem; font-weight: 800; color: #f59e0b;">⭐ ${c.visits} / 8 visitas</span>
+            </div>
+            ${prizeAlert}
+            ${actionButtons}
+            <button class="btn btn-outline" style="margin-top: 4px;" onclick="stateA.cajaMode = 'SCAN_READY'; renderA();">Cancelar</button>
+          </div>
+        `;
+        return;
+      }
+
+      if (stateA.cajaMode === "PROCESSING") {
+        el.innerHTML = `
+          <div class="card" style="text-align: center; padding: 40px 14px;">
+            <div style="font-size: 1.3rem;">⏳</div>
+            <div style="font-weight: 700; margin: 10px 0 4px;">Registrando operación...</div>
+            <p style="font-size: 0.75rem; color: var(--text-muted);">Disparando notificación oficial a WhatsApp</p>
+          </div>
+        `;
+        return;
+      }
+
+      if (stateA.cajaMode === "SUCCESS_DONE") {
+        el.innerHTML = `
+          <div class="card" style="text-align: center;">
+            <div style="font-size: 1.4rem; color: var(--success);">✓</div>
+            <div style="font-weight: 700; font-size: 1.05rem;">Visita Acreditada</div>
+            <div style="font-size: 1.3rem; font-weight: 800; color: #56d364; margin: 6px 0;">⭐ ${c.visits} / 8</div>
+            <button class="btn btn-action" onclick="stateA.cajaMode = 'SCAN_READY'; renderA();">Nueva Venta</button>
+          </div>
+        `;
+        return;
+      }
+
+      if (stateA.cajaMode === "WARNING_QUICK_BUY") {
+        el.innerHTML = `
+          <div class="card">
+            <div style="font-size: 1rem; font-weight: 700;">${c.name}</div>
+            <div class="alert-box warn">
+              <b>COMPRA RECIENTE (hace 30s)</b><br>¿Confirmar 2do ticket legítimo (take away)?
+            </div>
+            <button class="btn btn-action" onclick="confirmarCompraA()">[ SÍ, CONFIRMAR SEGUNDA COMPRA ]</button>
+            <button class="btn btn-outline" onclick="stateA.cajaMode = 'SCAN_READY'; renderA();">Cancelar</button>
+          </div>
+        `;
+        return;
+      }
+
+      if (stateA.cajaMode === "CANJE_CONFIRM") {
+        el.innerHTML = `
+          <div class="card">
+            <div style="font-weight: 700;">Canje de Recompensa</div>
+            <div class="alert-box success">Beneficio: <b>Combo 15 Piezas</b><br>Código: <code>${c.prizeCode}</code></div>
+            <button class="btn btn-action" style="background: var(--success);" onclick="canjearA()">[ ENTREGAR Y QUEMAR CÓDIGO ]</button>
+            <button class="btn btn-outline" onclick="stateA.cajaMode = 'CLIENT_DETECTED'; renderA();">Volver</button>
+          </div>
+        `;
+        return;
+      }
+
+      if (stateA.cajaMode === "CANJE_DONE") {
+        el.innerHTML = `
+          <div class="card" style="text-align: center;">
+            <div style="font-size: 1.4rem; color: var(--success);">✓</div>
+            <div style="font-weight: 700;">Premio Entregado</div>
+            <p style="font-size: 0.75rem; color: var(--text-muted);">Código quemado. Tarjeta en 0/8.</p>
+            <button class="btn btn-outline" onclick="stateA.cajaMode = 'SCAN_READY'; renderA();">Cámara Lista</button>
+          </div>
+        `;
+        return;
+      }
+
+      if (stateA.cajaMode === "REUSED_BLOCKED") {
+        el.innerHTML = `
+          <div class="card">
+            <div style="font-weight: 700; color: var(--danger);">Rechazo de Canje</div>
+            <div class="alert-box danger">PREMIO YA UTILIZADO el ${c.redeemedAt} por Caja 1.</div>
+            <button class="btn btn-outline" onclick="stateA.cajaMode = 'SCAN_READY'; renderA();">Volver a Cámara</button>
+          </div>
+        `;
+        return;
+      }
+    }
+
+    function executeScanByStoryA() {
+      if (stateA.client.isReusedCodeAttempt) stateA.cajaMode = "REUSED_BLOCKED";
+      else if (stateA.client.isImmediateSecondBuyStory) stateA.cajaMode = "WARNING_QUICK_BUY";
+      else stateA.cajaMode = "CLIENT_DETECTED";
+      renderA();
+    }
+
+    function confirmarCompraA() {
+      stateA.cajaMode = "PROCESSING";
+      renderA();
+      setTimeout(() => {
+        stateA.client.visits++;
+        const v = stateA.client.visits;
+        stateA.cajaMode = "SUCCESS_DONE";
+        stateA.chatHistory.push({
+          type: "recv",
+          text: `🎉 <b>¡Visita acreditada!</b><br>Tu tarjeta ahora está en <b>${v} / 8 ⭐</b>.`,
+          snapshotVisits: v,
+          time: "20:15"
+        });
+        renderA();
+      }, 1000);
+    }
+
+    function sumarVisitaConservandoPremioA() {
+      stateA.cajaMode = "PROCESSING";
+      renderA();
+      setTimeout(() => {
+        stateA.client.visits = 1;
+        stateA.cajaMode = "SUCCESS_DONE";
+        stateA.chatHistory.push({
+          type: "recv",
+          text: `🎉 <b>¡Visita acreditada!</b><br>Nuevo ciclo: <b>1 / 8 ⭐</b>.<br>🎁 Premio Combo 15p sigue guardado.`,
+          snapshotVisits: 1,
+          time: "20:25"
+        });
+        renderA();
+      }, 1000);
+    }
+
+    function canjearA() {
+      stateA.cajaMode = "PROCESSING";
+      renderA();
+      setTimeout(() => {
+        stateA.client.visits = 0;
+        stateA.client.hasAvailablePrize = false;
+        stateA.cajaMode = "CANJE_DONE";
+        stateA.chatHistory.push({
+          type: "recv",
+          text: `🍣 <b>¡Premio entregado!</b><br>Combo 15p canjeado. Código quemado.<br>Nueva tarjeta en <b>0 / 8 ⭐</b>.`,
+          snapshotVisits: 0,
+          time: "21:10"
+        });
+        renderA();
+      }, 1000);
+    }
+
+    function renderWhatsAppA() {
+      const el = document.getElementById('wa-chat');
+      let html = '';
+      stateA.chatHistory.forEach(msg => {
+        let stamps = '';
+        for (let i = 1; i <= 8; i++) {
+          const isFilled = i <= msg.snapshotVisits;
+          const isPrize = i === 8;
+          let cls = 'stamp';
+          if (isPrize) cls += ' prize';
+          if (isFilled) cls += ' active';
+          stamps += `<div class="${cls}">${isPrize ? '🎁' : i}</div>`;
+        }
+        html += `
+          <div class="wa-msg ${msg.type}">
+            ${msg.text}
+            <div class="stamps-box">
+              <div style="font-size: 0.65rem; color: #8b949e; text-transform: uppercase;">Tarjeta Digital</div>
+              <div class="grid-stamps">${stamps}</div>
+              <div class="qr-client-img"><div class="qr-lines"></div></div>
+              <div style="font-size: 0.65rem; color: #8b949e; margin-top: 3px;">Mostralo al pagar</div>
             </div>
             <div class="wa-time">${msg.time} ✓✓</div>
           </div>
