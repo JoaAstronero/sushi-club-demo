@@ -38,7 +38,6 @@
       padding: 16px 14px;
     }
 
-    /* SELECTOR DE ENFOQUE (MODELO A vs MODELO B) */
     .system-selector {
       width: 100%;
       max-width: 860px;
@@ -545,7 +544,7 @@
   <div class="top-bar">
     <h1 id="top-title">SUSHI CLUB · SISTEMA DE PUNTOS</h1>
     <div style="font-size: 0.72rem; color: var(--text-muted);" id="top-sub">
-      Configuración inteligente para el dueño + Caja en segundos
+      Beneficios en % auto-indexados a inflación + Caja en segundos
     </div>
   </div>
 
@@ -601,51 +600,31 @@
     let currentSystem = 'PUNTOS';
 
     // ==========================================
-    // ESTADO PARA MODELO A (SELLOS)
-    // ==========================================
-    let activeStoryA = 1;
-    const stateA = {
-      cajaMode: "SCAN_READY",
-      client: {
-        name: "María González",
-        phone: "+54 9 351 512-3456",
-        visits: 3,
-        max: 8,
-        hasAvailablePrize: false,
-        prizeCode: "SUSHI-8X91B",
-        redeemedAt: null,
-        isReusedCodeAttempt: false,
-        isImmediateSecondBuyStory: false
-      },
-      chatHistory: []
-    };
-
-    // ==========================================
-    // ESTADO PARA MODELO B (SISTEMA DE PUNTOS)
+    // ESTADO MODELO B: PUNTOS CON PREMIO % DEFAULT Y ENDOWED PROGRESS
     // ==========================================
     let activeStoryB = 1;
     const stateB = {
       viewMode: "ONBOARDING_SETUP",
       config: {
-        ratioSpend: 1000, // Cada $1000 = 1 punto (alpha = 0.001)
-        vPuntoMax: 34,    // $34 pesos por punto (V_punto_max)
+        ratioSpend: 1000, // Cada $1000 = 1 punto
+        vPuntoMax: 34,
         marginPercent: 65,
         deltaQ: 0.08,
         sliderFactor: 0.70,
         maxSafePercent: 4.8,
         recommendedPercent: 3.4,
-        // Catálogo multi-premio abierto
+        // Por defecto: Premio % con tope (auto-indexado a inflación y deducible de IVA/IIBB)
         prizes: [
-          { name: "Combo 15 Piezas", type: "FIXED", worstCaseCost: 10000, points: 200 },
-          { name: "30% OFF en tu compra (Tope $5.000)", type: "PERCENT_CAP", worstCaseCost: 5000, points: 100 },
-          { name: "Postre o Roll chico", type: "FIXED", worstCaseCost: 3500, points: 70 }
+          { name: "50% OFF en tu Combo Favorito (Tope $7.000)", type: "PERCENT_CAP", worstCaseCost: 7000, points: 140, isDefault: true },
+          { name: "Combo 15 Piezas Gratis", type: "FIXED", worstCaseCost: 10000, points: 200, isDefault: false },
+          { name: "Postre o Roll chico", type: "FIXED", worstCaseCost: 3500, points: 70, isDefault: false }
         ]
       },
       client: {
         dni: "38.123.456",
         name: "María González",
         phone: "+54 9 351 512-3456",
-        points: 180,
+        points: 150,
         lastAddedPoints: 0,
         lastSpendAmount: 0
       },
@@ -662,21 +641,18 @@
         document.getElementById('top-sub').innerText = "Flujo reactivo: Terminal de Caja ⇄ WhatsApp";
         document.getElementById('col1-title').innerText = "Terminal del Comercio";
         document.getElementById('col1-role').innerText = "Rol: Cajero";
-        startStoryA(activeStoryA);
+        startStoryA(1);
       } else {
         document.getElementById('top-title').innerText = "SUSHI CLUB · SISTEMA DE PUNTOS";
-        document.getElementById('top-sub').innerText = "Configuración inteligente para el dueño + Caja en segundos";
+        document.getElementById('top-sub').innerText = "Beneficios en % auto-indexados a inflación + Caja en segundos";
         startStoryB(activeStoryB);
       }
     }
 
-    // ==========================================
-    // LOGICA MODELO B: PUNTOS PULIDO
-    // ==========================================
     function startStoryB(stepId) {
       activeStoryB = stepId;
 
-      if (stepId === 1) { // 1. Configuración del Dueño
+      if (stepId === 1) { // 1. Configuración Dueño
         stateB.viewMode = "ONBOARDING_SETUP";
         document.getElementById('col1-title').innerText = "Configuración del Dueño";
         document.getElementById('col1-role').innerText = "Paso 1: Setup";
@@ -684,8 +660,8 @@
 
         stateB.chatHistory = [{
           type: "recv",
-          text: `¡Hola María! Ya sos parte del Club Sushi.<br>Tu saldo inicial es de <b>0 Puntos</b>.<br>Sumás 1 punto cada <b>$${stateB.config.ratioSpend.toLocaleString('es-AR')}</b> gastados.<br>Tenés 3 beneficios disponibles para canjear cuando quieras.`,
-          points: 0,
+          text: `¡Hola María! Ya sos parte del Club Sushi.<br>Tu saldo inicial incluye un <b>Bono de Bienvenida de 20 Puntos</b> 🎁.<br>Sumás 1 punto cada <b>$${stateB.config.ratioSpend.toLocaleString('es-AR')}</b> gastados.<br>Tenés beneficios de hasta <b>50% OFF</b> listos para canjear.`,
+          points: 20,
           time: "19:00"
         }];
       } 
@@ -695,25 +671,25 @@
         document.getElementById('col1-role').innerText = "Paso 2: Operación";
         document.getElementById('caja-status-tag').innerHTML = '<span class="dot-active"></span>Caja 1 · Activa';
 
-        stateB.client.points = 180;
+        stateB.client.points = 130;
         stateB.chatHistory = [{
           type: "recv",
-          text: `¡Hola María! Tenés <b>180 Puntos</b> acumulados.<br>Te faltan solo 20 puntos para tu <b>Combo 15 Piezas (200 pts)</b> o ya podés usar tu <b>30% OFF (100 pts)</b>.`,
-          points: 180,
+          text: `¡Hola María! Tenés <b>130 Puntos</b> acumulados.<br>Te faltan solo 10 puntos para tu <b>50% OFF (140 pts)</b>.`,
+          points: 130,
           time: "19:30"
         }];
       } 
-      else if (stepId === 3) { // 3. Canje de Recompensa
+      else if (stepId === 3) { // 3. Canje y Endowed Progress Post-Canje
         stateB.viewMode = "CANJE_READY";
         document.getElementById('col1-title').innerText = "Terminal de Caja";
         document.getElementById('col1-role').innerText = "Paso 3: Canje";
         document.getElementById('caja-status-tag').innerHTML = '<span class="dot-active"></span>Caja 1 · Activa';
 
-        stateB.client.points = 210;
+        stateB.client.points = 150;
         stateB.chatHistory = [{
           type: "recv",
-          text: `🎉 <b>¡Llegaste a la meta María!</b><br>Tenés <b>210 Puntos</b> disponibles.<br>Elegí en caja qué beneficio querés canjear hoy.`,
-          points: 210,
+          text: `🎉 <b>¡Meta alcanzada María!</b><br>Tenés <b>150 Puntos</b> disponibles.<br>Podés canjear hoy tu <b>50% OFF (Tope $7.000)</b> en la cuenta.`,
+          points: 150,
           time: "20:00"
         }];
       }
@@ -728,7 +704,7 @@
         <div class="controls-btns">
           <button class="btn-ctrl ${activeStoryB === 1 ? 'active' : ''}" onclick="startStoryB(1)">1. Configurar (Dueño)</button>
           <button class="btn-ctrl ${activeStoryB === 2 ? 'active' : ''}" onclick="startStoryB(2)">2. Caja (DNI + Monto)</button>
-          <button class="btn-ctrl ${activeStoryB === 3 ? 'active' : ''}" onclick="startStoryB(3)">3. Canje de Premio</button>
+          <button class="btn-ctrl ${activeStoryB === 3 ? 'active' : ''}" onclick="startStoryB(3)">3. Canje + Bono Arranque</button>
         </div>
       `;
     }
@@ -743,16 +719,16 @@
       const c = stateB.client;
       const cfg = stateB.config;
 
-      // 1. CONFIGURACIÓN DEL DUEÑO (TOTALMENTE PULIDA)
+      // 1. CONFIGURACIÓN DEL DUEÑO
       if (stateB.viewMode === "ONBOARDING_SETUP") {
         let prizeRowsHtml = '';
         cfg.prizes.forEach((p, idx) => {
           prizeRowsHtml += `
             <div class="prize-row">
               <div>
-                <b>${p.name}</b><br>
+                <b>${p.name}</b> ${p.isDefault ? '<span style="font-size:0.6rem; color:#56d364; background:rgba(86,211,100,0.15); padding:1px 4px; border-radius:3px;">Sugerido</span>' : ''}<br>
                 <span style="color: var(--text-muted); font-size: 0.68rem;">
-                  ${p.type === 'FIXED' ? 'Producto de regalo' : 'Descuento %'} · Tope peor caso: $${p.worstCaseCost.toLocaleString('es-AR')}
+                  ${p.type === 'PERCENT_CAP' ? 'Descuento % en ticket (inmune a inflación)' : 'Producto físico gratis'} · Tope: $${p.worstCaseCost.toLocaleString('es-AR')}
                 </span>
               </div>
               <span class="prize-badge">${p.points} PTS</span>
@@ -764,10 +740,9 @@
           <div class="card">
             <div style="font-weight: 700; font-size: 0.92rem;">Configurá tu Programa en 2 minutos</div>
             <p style="font-size: 0.73rem; color: var(--text-muted);">
-              Te decimos exactamente cuánto podés regalar para ganar clientes sin arriesgar tu ganancia.
+              Te decimos cuánto podés regalar con beneficios inmunes a inflación y fiscalmente limpios.
             </p>
 
-            <!-- RUBRO CON IMPACTO EXPLICADO -->
             <div>
               <label style="font-size: 0.72rem; color: var(--text-muted); font-weight: 600;">Rubro de tu Negocio:</label>
               <select class="input-field" id="cfg-rubro" onchange="updateSetupMath()">
@@ -780,7 +755,6 @@
               </div>
             </div>
 
-            <!-- MARGEN LIBRE CON TIP DE PEOR CASO -->
             <div>
               <div style="display: flex; justify-content: space-between; align-items: center;">
                 <label style="font-size: 0.72rem; color: var(--text-muted); font-weight: 600;">Margen de Ganancia Estimado (%):</label>
@@ -788,11 +762,10 @@
               </div>
               <input type="number" class="input-field" id="cfg-margin-input" value="${cfg.marginPercent}" oninput="updateSetupMath()">
               <div style="font-size: 0.67rem; color: var(--text-muted); margin-top: 2px;">
-                *Si tus productos varían mucho, poné el margen del que menos te conviene regalar (el más bajo).
+                *Si tus platos varían mucho, poné el margen del que menos te conviene regalar (el más bajo).
               </div>
             </div>
 
-            <!-- SLIDER EXPLICADO: QUÉ MUEVE REALMENTE -->
             <div>
               <div style="display: flex; justify-content: space-between; font-size: 0.72rem;">
                 <span style="color: var(--text-muted); font-weight: 600;">Estrategia de Beneficio:</span>
@@ -804,14 +777,12 @@
               </div>
             </div>
 
-            <!-- DIAGNÓSTICO EN LENGUAJE CLARO -->
             <div class="alert-box info">
-              <b>Resultado de Seguridad:</b><br>
-              Podés regalar hasta <b id="txt-cmax">4.8%</b> de tus ventas sin arriesgar margen.<br>
-              Te sugerimos empezar en <b id="txt-crec" style="color: #56d364;">3.4%</b> como protección.
+              <b>Blindaje Actuarial y Legal:</b><br>
+              • Podés regalar hasta <b id="txt-cmax">4.8%</b> sin arriesgar margen. Recomendado: <b id="txt-crec" style="color: #56d364;">3.4%</b>.<br>
+              • Preaviso legal garantizado: 30 días de gracia antes de actualizar tablas (Ley 24.240).
             </div>
 
-            <!-- LISTA MULTI-PREMIO ABIERTA -->
             <div>
               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
                 <label style="font-size: 0.72rem; color: var(--text-muted); font-weight: 600;">Catálogo de Beneficios Calculados:</label>
@@ -820,9 +791,6 @@
               <div class="prize-list" id="prize-list-container">
                 ${prizeRowsHtml}
               </div>
-              <button class="btn-outline" style="margin-top: 6px; padding: 5px; font-size: 0.7rem;" onclick="promptAddCustomPrize()">
-                + Agregar otro beneficio (Canje fijo o Descuento %)
-              </button>
             </div>
 
             <button class="btn btn-action" style="margin-top: 6px;" onclick="applySetupAndGoToCashier()">
@@ -833,7 +801,7 @@
         return;
       }
 
-      // 2. CAJA RÁPIDA (CONEXIÓN VIVA)
+      // 2. CAJA RÁPIDA
       if (stateB.viewMode === "CASH_REGISTER") {
         el.innerHTML = `
           <div class="card">
@@ -855,12 +823,12 @@
 
             <div>
               <label style="font-size: 0.72rem; color: var(--text-muted);">Monto del Ticket ($):</label>
-              <input type="number" class="input-field" id="input-spend" value="12000" oninput="updateCalculatedPointsLive()">
+              <input type="number" class="input-field" id="input-spend" value="15000" oninput="updateCalculatedPointsLive()">
             </div>
 
             <div class="metric-box">
               <span style="font-size: 0.78rem; color: var(--text-muted);">Puntos a generar automáticamente:</span>
-              <span style="font-size: 1.25rem; font-weight: 800; color: #56d364;" id="calc-pts">+12 pts</span>
+              <span style="font-size: 1.25rem; font-weight: 800; color: #56d364;" id="calc-pts">+15 pts</span>
             </div>
 
             <button class="btn btn-action" onclick="confirmarPuntosB()">
@@ -872,7 +840,7 @@
         return;
       }
 
-      // 3. CANJE MULTI-PREMIO
+      // 3. CANJE MULTI-PREMIO + BONO POST-CANJE
       if (stateB.viewMode === "CANJE_READY") {
         let optionsHtml = '';
         cfg.prizes.forEach((p, idx) => {
@@ -901,11 +869,15 @@
               <span style="font-size: 1.2rem; font-weight: 800; color: #56d364;">${c.points} Puntos</span>
             </div>
 
-            <div style="font-size: 0.75rem; color: var(--text-muted); margin: 4px 0 6px;">
-              Elegí qué beneficio canjea el cliente en esta compra:
+            <div style="font-size: 0.74rem; color: var(--text-muted); margin: 4px 0 6px;">
+              Elegí qué beneficio aplica como <b>descuento directo en factura</b>:
             </div>
 
             ${optionsHtml}
+
+            <div class="alert-box info" style="margin-top: 6px; font-size: 0.7rem;">
+              💡 <b>Ventaja Fiscal (Ley IVA Art. 10):</b> Este canje entra como bonificación en el ticket, deduciendo automáticamente la base de IVA e Ingresos Brutos.
+            </div>
 
             <button class="btn btn-outline" style="margin-top: 6px;" onclick="startStoryB(2)">Volver a Cobro de Caja</button>
           </div>
@@ -913,7 +885,6 @@
         return;
       }
 
-      // PROCESANDO
       if (stateB.viewMode === "PROCESSING") {
         el.innerHTML = `
           <div class="card" style="text-align: center; padding: 40px 14px;">
@@ -925,7 +896,6 @@
         return;
       }
 
-      // ÉXITO
       if (stateB.viewMode === "SUCCESS") {
         el.innerHTML = `
           <div class="card" style="text-align: center;">
@@ -949,13 +919,11 @@
       const m = (Number(document.getElementById('cfg-margin-input').value) || 65) / 100;
       const sliderVal = Number(document.getElementById('cfg-slider').value);
 
-      // Explicación de impacto del rubro
       let rubroTxt = "Los negocios gastronómicos logran un <b>8% más de visitas repetidas</b> con puntos.";
       if (dq === 0.12) rubroTxt = "Los servicios recurrentes (barberías, lavaderos) logran hasta un <b>12% más de recurrencia</b>.";
       else if (dq === 0.05) rubroTxt = "Las tiendas de indumentaria y retail logran un <b>5% de incremento de recompra</b>.";
       document.getElementById('txt-rubro-impact').innerHTML = `ℹ️ ${rubroTxt}`;
 
-      // Cálculo de C_max y C_rec
       const cmax = (m * dq) / (1 + dq);
       const s = sliderVal / 100;
       const crec = cmax * s;
@@ -966,7 +934,6 @@
       document.getElementById('txt-cmax').innerText = `${stateB.config.maxSafePercent}%`;
       document.getElementById('txt-crec').innerText = `${stateB.config.recommendedPercent}%`;
 
-      // Copy del slider según factor de seguridad
       let modeTxt = "Equilibrada";
       let expTxt = "<b>Equilibrada:</b> Dejás un colchón de seguridad por si el programa rinde menos de lo proyectado.";
       if (sliderVal <= 50) {
@@ -979,19 +946,15 @@
       document.getElementById('label-slider-mode').innerText = `${modeTxt} (${stateB.config.recommendedPercent}% retorno)`;
       document.getElementById('txt-slider-explanation').innerHTML = expTxt;
 
-      // REGLA UNIFICADORA: V_punto_max = C_rec / alpha
-      // Fijamos alpha = 1 / 1000 ($1.000 = 1 pt)
       stateB.config.ratioSpend = 1000;
       const alpha = 1 / 1000;
-      const vPuntoMax = crec / alpha; // Pesos de seguridad por punto
+      const vPuntoMax = crec / alpha;
       stateB.config.vPuntoMax = vPuntoMax > 5 ? vPuntoMax : 10;
 
-      // Recalcular puntos de los premios en vivo
       stateB.config.prizes.forEach(p => {
         p.points = Math.ceil(p.worstCaseCost / stateB.config.vPuntoMax);
       });
 
-      // Si estamos en la vista de setup, refrescar la lista
       const container = document.getElementById('prize-list-container');
       if (container) {
         let rowsHtml = '';
@@ -999,9 +962,9 @@
           rowsHtml += `
             <div class="prize-row">
               <div>
-                <b>${p.name}</b><br>
+                <b>${p.name}</b> ${p.isDefault ? '<span style="font-size:0.6rem; color:#56d364; background:rgba(86,211,100,0.15); padding:1px 4px; border-radius:3px;">Sugerido</span>' : ''}<br>
                 <span style="color: var(--text-muted); font-size: 0.68rem;">
-                  ${p.type === 'FIXED' ? 'Producto de regalo' : 'Descuento %'} · Tope peor caso: $${p.worstCaseCost.toLocaleString('es-AR')}
+                  ${p.type === 'PERCENT_CAP' ? 'Descuento % en ticket (inmune a inflación)' : 'Producto físico gratis'} · Tope: $${p.worstCaseCost.toLocaleString('es-AR')}
                 </span>
               </div>
               <span class="prize-badge">${p.points} PTS</span>
@@ -1010,21 +973,6 @@
         });
         container.innerHTML = rowsHtml;
       }
-    }
-
-    function promptAddCustomPrize() {
-      const name = prompt("Nombre del beneficio (ej: 'Café chico' o '20% OFF en salón'):", "Café con medialunas");
-      if (!name) return;
-      const cost = Number(prompt("Costo máximo en el peor caso en pesos ($) (ej: precio del café o tope del descuento):", "3000")) || 3000;
-      
-      const pts = Math.ceil(cost / stateB.config.vPuntoMax);
-      stateB.config.prizes.push({
-        name: name,
-        type: "FIXED",
-        worstCaseCost: cost,
-        points: pts
-      });
-      renderB();
     }
 
     function applySetupAndGoToCashier() {
@@ -1053,7 +1001,7 @@
 
         stateB.chatHistory.push({
           type: "recv",
-          text: `🎉 <b>¡Sumaste ${pts} Puntos!</b><br>Por tu compra de $${spend.toLocaleString('es-AR')}.<br>Tu saldo actualizado es de <b>${stateB.client.points} Puntos</b>.<br>Podés canjearlos por cualquiera de los beneficios del Club.`,
+          text: `🎉 <b>¡Sumaste ${pts} Puntos!</b><br>Por tu compra de $${spend.toLocaleString('es-AR')}.<br>Tu saldo actualizado es de <b>${stateB.client.points} Puntos</b>.<br>Podés canjearlos por tu 50% OFF en la próxima visita.`,
           points: stateB.client.points,
           time: "20:30"
         });
@@ -1062,18 +1010,21 @@
       }, 1000);
     }
 
+    // CANJE CON ENDOWED PROGRESS (NO VUELVE A CERO PELADO)
     function ejecutarCanjeItemB(prizeIndex) {
       const prize = stateB.config.prizes[prizeIndex];
       stateB.viewMode = "PROCESSING";
       renderB();
 
       setTimeout(() => {
-        stateB.client.points -= prize.points;
+        // Bono de progreso sembrado: arranca con 20 puntos de regalo para el próximo ciclo
+        const bonusArranque = 20;
+        stateB.client.points = (stateB.client.points - prize.points) + bonusArranque;
         stateB.viewMode = "CASH_REGISTER";
 
         stateB.chatHistory.push({
           type: "recv",
-          text: `🍣 <b>¡Canje realizado con éxito!</b><br>Utilizaste ${prize.points} puntos para tu <b>${prize.name}</b>.<br>Tu nuevo saldo restante es de <b>${stateB.client.points} Puntos</b>.`,
+          text: `🍣 <b>¡Descuento aplicado en tu factura!</b><br>Canjeaste <b>${prize.name}</b> (-${prize.points} pts).<br><br>🎁 <b>Bono de fidelidad:</b> Te regalamos <b>+20 Puntos</b> de arranque para que no empieces de cero.<br>Tu nuevo saldo para el próximo canje es de <b>${stateB.client.points} Puntos</b>.`,
           points: stateB.client.points,
           time: "20:35"
         });
@@ -1106,6 +1057,23 @@
     // ==========================================
     // LOGICA MODELO A: SELLOS (Mantenida intacta)
     // ==========================================
+    let activeStoryA = 1;
+    const stateA = {
+      cajaMode: "SCAN_READY",
+      client: {
+        name: "María González",
+        phone: "+54 9 351 512-3456",
+        visits: 3,
+        max: 8,
+        hasAvailablePrize: false,
+        prizeCode: "SUSHI-8X91B",
+        redeemedAt: null,
+        isReusedCodeAttempt: false,
+        isImmediateSecondBuyStory: false
+      },
+      chatHistory: []
+    };
+
     function startStoryA(storyId) {
       activeStoryA = storyId;
       stateA.cajaMode = "SCAN_READY";
@@ -1427,7 +1395,6 @@
       el.scrollTop = el.scrollHeight;
     }
 
-    // Inicializar directamente en Modelo B
     switchSystemMode('PUNTOS');
   </script>
 </body>
