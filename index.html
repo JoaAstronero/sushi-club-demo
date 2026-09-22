@@ -1,0 +1,1046 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sushi Club — Simulación de Flujos Operativos</title>
+  <style>
+    :root {
+      --bg: #090b0e;
+      --panel: #12161f;
+      --border: #232836;
+      --text: #e6edf3;
+      --text-muted: #7d8590;
+      --accent: #e04a3f;
+      --accent-hover: #c7382d;
+      --success: #238636;
+      --warning: #d29922;
+      --danger: #f85149;
+      --wa-bg: #0b141a;
+      --wa-bubble-me: #005c4b;
+      --wa-bubble-sys: #202c33;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px 14px;
+    }
+
+    .top-bar {
+      width: 100%;
+      max-width: 860px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .top-bar h1 {
+      font-size: 0.95rem;
+      font-weight: 700;
+    }
+
+    .workspace {
+      display: flex;
+      gap: 18px;
+      width: 100%;
+      max-width: 860px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .screen-col {
+      flex: 1;
+      min-width: 320px;
+      max-width: 410px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .col-label {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-muted);
+      font-weight: 700;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 4px;
+    }
+
+    .device {
+      height: 620px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 12px 28px rgba(0,0,0,0.5);
+      position: relative;
+    }
+
+    /* CAJA TERMINAL */
+    .caja-top {
+      padding: 12px 16px;
+      background: #0d0f15;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.78rem;
+    }
+
+    .status-tag {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--text-muted);
+      font-size: 0.7rem;
+    }
+
+    .dot-active {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--success);
+    }
+
+    .caja-body {
+      flex: 1;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      overflow-y: auto;
+    }
+
+    .card {
+      background: #171b26;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .scanner-mock {
+      background: #0d0f15;
+      border: 2px dashed #2d3546;
+      border-radius: 10px;
+      height: 170px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      color: var(--text-muted);
+      font-size: 0.75rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .scan-laser {
+      position: absolute;
+      top: 20%;
+      left: 0;
+      width: 100%;
+      height: 2px;
+      background: var(--accent);
+      box-shadow: 0 0 8px var(--accent);
+      animation: laserMove 2.5s infinite ease-in-out;
+    }
+
+    @keyframes laserMove {
+      0%, 100% { top: 15%; opacity: 0.4; }
+      50% { top: 85%; opacity: 1; }
+    }
+
+    .metric-box {
+      background: #0d0f15;
+      padding: 10px 12px;
+      border-radius: 6px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .btn {
+      width: 100%;
+      padding: 11px;
+      border-radius: 6px;
+      font-size: 0.83rem;
+      font-weight: 700;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.15s ease;
+    }
+
+    .btn-action {
+      background: var(--accent);
+      color: #fff;
+    }
+
+    .btn-action:hover {
+      background: var(--accent-hover);
+    }
+
+    .btn-outline {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      padding: 8px;
+      font-size: 0.75rem;
+      border-radius: 6px;
+      cursor: pointer;
+      text-align: center;
+    }
+
+    .btn-outline:hover {
+      color: var(--text);
+      border-color: #3f475a;
+    }
+
+    .btn-text {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-size: 0.72rem;
+      cursor: pointer;
+      text-decoration: underline;
+      padding: 4px;
+    }
+
+    .alert-box {
+      border-radius: 6px;
+      padding: 10px 12px;
+      font-size: 0.78rem;
+      line-height: 1.35;
+    }
+
+    .alert-box.warn {
+      background: rgba(210, 153, 34, 0.12);
+      border-left: 3px solid var(--warning);
+      color: #e3b341;
+    }
+
+    .alert-box.danger {
+      background: rgba(248, 81, 73, 0.12);
+      border-left: 3px solid var(--danger);
+      color: #ff7b72;
+    }
+
+    .alert-box.success {
+      background: rgba(35, 134, 54, 0.12);
+      border-left: 3px solid var(--success);
+      color: #56d364;
+    }
+
+    /* WHATSAPP CLIENTE */
+    .wa-top {
+      padding: 12px 14px;
+      background: #202c33;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.82rem;
+    }
+
+    .wa-avatar {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: var(--accent);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.75rem;
+      font-weight: bold;
+    }
+
+    .wa-chat {
+      flex: 1;
+      background: var(--wa-bg);
+      padding: 14px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .wa-msg {
+      max-width: 88%;
+      padding: 9px 11px;
+      border-radius: 8px;
+      font-size: 0.8rem;
+      line-height: 1.35;
+      animation: msgPop 0.25s ease-out;
+    }
+
+    @keyframes msgPop {
+      0% { opacity: 0; transform: translateY(8px) scale(0.98); }
+      100% { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .wa-msg.sent {
+      background: var(--wa-bubble-me);
+      align-self: flex-end;
+      border-top-right-radius: 0;
+    }
+
+    .wa-msg.recv {
+      background: var(--wa-bubble-sys);
+      align-self: flex-start;
+      border-top-left-radius: 0;
+    }
+
+    .wa-time {
+      font-size: 0.62rem;
+      color: rgba(255,255,255,0.45);
+      text-align: right;
+      margin-top: 3px;
+    }
+
+    .stamps-box {
+      background: #11141c;
+      border: 1px solid #283042;
+      border-radius: 6px;
+      padding: 10px;
+      margin-top: 8px;
+      text-align: center;
+    }
+
+    .grid-stamps {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 5px;
+      margin: 8px 0;
+    }
+
+    .stamp {
+      aspect-ratio: 1;
+      border-radius: 50%;
+      border: 1px dashed #3a445b;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.68rem;
+      color: #64748b;
+    }
+
+    .stamp.active {
+      background: var(--accent);
+      border: 1px solid var(--accent);
+      color: #fff;
+      font-weight: bold;
+    }
+
+    .stamp.prize {
+      border-color: #f59e0b;
+      color: #f59e0b;
+    }
+
+    .stamp.prize.active {
+      background: #f59e0b;
+      color: #000;
+      border-color: #f59e0b;
+    }
+
+    .qr-client-img {
+      width: 70px;
+      height: 70px;
+      background: #fff;
+      margin: 6px auto 2px;
+      border-radius: 4px;
+      padding: 4px;
+    }
+
+    .qr-lines {
+      width: 100%;
+      height: 100%;
+      background: repeating-linear-gradient(45deg, #111, #111 4px, #fff 4px, #fff 8px);
+    }
+
+    /* CONTROLES INFERIORES LIMPIOS */
+    .controls-panel {
+      width: 100%;
+      max-width: 860px;
+      margin-top: 14px;
+      background: #10131b;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .controls-btns {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .btn-ctrl {
+      background: #171b26;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      font-size: 0.74rem;
+      padding: 6px 12px;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    .btn-ctrl:hover {
+      color: var(--text);
+      border-color: #3b455b;
+    }
+
+    .btn-ctrl.active {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="top-bar">
+    <h1>SUSHI CLUB · SIMULACIÓN OPERATIVA</h1>
+    <div style="font-size: 0.72rem; color: var(--text-muted);">
+      Flujo reactivo completo: Terminal de Caja ⇄ WhatsApp
+    </div>
+  </div>
+
+  <div class="workspace">
+    
+    <!-- COLUMNA 1: TERMINAL CAJA -->
+    <div class="screen-col">
+      <div class="col-label">
+        <span>Terminal del Comercio</span>
+        <span>Rol: Cajero</span>
+      </div>
+      <div class="device">
+        <div class="caja-top">
+          <span style="font-weight: 700;">SUSHI CLUB</span>
+          <span class="status-tag"><span class="dot-active"></span>Caja 1 · Activa</span>
+        </div>
+        
+        <div class="caja-body" id="caja-view">
+          <!-- Render dinámico de Caja -->
+        </div>
+      </div>
+    </div>
+
+    <!-- COLUMNA 2: WHATSAPP DEL CLIENTE -->
+    <div class="screen-col">
+      <div class="col-label">
+        <span>Celular del Cliente</span>
+        <span>Canal: WhatsApp</span>
+      </div>
+      <div class="device">
+        <div class="wa-top">
+          <div class="wa-avatar">🍣</div>
+          <div>
+            <div style="font-weight: 700;">Sushi Club Oficial</div>
+            <div style="font-size: 0.65rem; color: #8696a0;">Cuenta comercial verificada</div>
+          </div>
+        </div>
+        
+        <div class="wa-chat" id="wa-chat">
+          <!-- Render dinámico de mensajes WhatsApp -->
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- PANEL DE HISTORIAS COMPLETAS (Arrancan SIEMPRE desde la cámara) -->
+  <div class="controls-panel">
+    <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: 600;">Elegir Historia Completa:</span>
+    <div class="controls-btns">
+      <button class="btn-ctrl active" id="btn-c1" onclick="startStory(1)">Historia 1: Compra Normal (3/8)</button>
+      <button class="btn-ctrl" id="btn-c2" onclick="startStory(2)">Historia 2: Doble Compra Sucesiva</button>
+      <button class="btn-ctrl" id="btn-c3" onclick="startStory(3)">Historia 3: Cliente con Premio (8/8)</button>
+      <button class="btn-ctrl" id="btn-c4" onclick="startStory(4)">Historia 4: Fraude con Cupón Quemado</button>
+    </div>
+  </div>
+
+  <script>
+    // ESTADO GENERAL
+    let activeStoryId = 1;
+
+    const state = {
+      cajaMode: "SCAN_READY", // SCAN_READY, CLIENT_DETECTED, PROCESSING, SUCCESS_DONE, WARNING_QUICK_BUY, CANJE_CONFIRM, CANJE_DONE, REUSED_BLOCKED
+      client: {
+        name: "María González",
+        phone: "+54 9 351 512-3456",
+        visits: 3,
+        max: 8,
+        hasAvailablePrize: false,
+        prizeCode: "SUSHI-8X91B",
+        redeemedAt: null,
+        isReusedCodeAttempt: false,
+        isImmediateSecondBuyStory: false
+      },
+      chatHistory: []
+    };
+
+    function startStory(storyId) {
+      activeStoryId = storyId;
+      for (let i = 1; i <= 4; i++) {
+        document.getElementById(`btn-c${i}`).classList.toggle('active', i === storyId);
+      }
+
+      state.cajaMode = "SCAN_READY";
+
+      if (storyId === 1) { // Compra normal
+        state.client = {
+          name: "María González",
+          phone: "+54 9 351 512-3456",
+          visits: 3,
+          max: 8,
+          hasAvailablePrize: false,
+          prizeCode: "SUSHI-8X91B",
+          redeemedAt: null,
+          isReusedCodeAttempt: false,
+          isImmediateSecondBuyStory: false
+        };
+        state.chatHistory = [
+          {
+            type: "recv",
+            text: "¡Hola María! Ya sos parte del Club.<br>⭐ Tenés <b>3 / 8 visitas</b> registradas.<br>Faltan 5 para tu Combo Gratis.",
+            snapshotVisits: 3,
+            time: "20:10"
+          }
+        ];
+      }
+      else if (storyId === 2) { // Doble compra sucesiva
+        state.client = {
+          name: "María González",
+          phone: "+54 9 351 512-3456",
+          visits: 4,
+          max: 8,
+          hasAvailablePrize: false,
+          prizeCode: "SUSHI-8X91B",
+          redeemedAt: null,
+          isReusedCodeAttempt: false,
+          isImmediateSecondBuyStory: true
+        };
+        state.chatHistory = [
+          {
+            type: "recv",
+            text: "¡Hola María! Ya sos parte del Club.<br>⭐ Tenés <b>3 / 8 visitas</b> registradas.<br>Faltan 5 para tu Combo Gratis.",
+            snapshotVisits: 3,
+            time: "20:10"
+          },
+          {
+            type: "recv",
+            text: "🎉 <b>¡Visita acreditada!</b><br>Tu tarjeta ahora está en <b>4 / 8 ⭐</b>.<br>Te faltan 4 visitas para tu Combo Gratis.",
+            snapshotVisits: 4,
+            time: "20:45"
+          }
+        ];
+      }
+      else if (storyId === 3) { // Cliente con 8/8 y Premio guardado
+        state.client = {
+          name: "María González",
+          phone: "+54 9 351 512-3456",
+          visits: 8,
+          max: 8,
+          hasAvailablePrize: true,
+          prizeCode: "SUSHI-8X91B",
+          redeemedAt: null,
+          isReusedCodeAttempt: false,
+          isImmediateSecondBuyStory: false
+        };
+        state.chatHistory = [
+          {
+            type: "recv",
+            text: "🎉 <b>¡FELICITACIONES MARÍA!</b><br>Llegaste a tus <b>8 / 8 visitas ⭐</b>.<br><br>🎁 Tenés guardado en tu cuenta:<br><b>Combo 15 Piezas Gratis</b><br>Código: <b style='color:#f59e0b;'>SUSHI-8X91B</b> (Válido 30 días)<br><br>Podés canjearlo cuando quieras o seguir acumulando compras.",
+            snapshotVisits: 8,
+            time: "Ayer · 21:00"
+          }
+        ];
+      }
+      else if (storyId === 4) { // Código ya quemado
+        state.client = {
+          name: "Cliente Desconocido",
+          phone: "+54 9 351 987-6543",
+          visits: 0,
+          max: 8,
+          hasAvailablePrize: false,
+          prizeCode: "SUSHI-8X91B",
+          redeemedAt: "Ayer · 21:30",
+          isReusedCodeAttempt: true,
+          isImmediateSecondBuyStory: false
+        };
+        state.chatHistory = [
+          {
+            type: "recv",
+            text: "🍣 <b>¡Premio entregado!</b><br>Canjeaste tu Combo 15 Piezas.<br>El código <code>SUSHI-8X91B</code> ha quedado inutilizado.",
+            snapshotVisits: 0,
+            time: "Ayer · 21:30"
+          }
+        ];
+      }
+
+      render();
+    }
+
+    function render() {
+      renderCaja();
+      renderWhatsApp();
+    }
+
+    function renderCaja() {
+      const el = document.getElementById('caja-view');
+      const c = state.client;
+
+      // 1. CÁMARA LISTA
+      if (state.cajaMode === "SCAN_READY") {
+        let labelBtn = `[ Simular que ${c.name} muestra su QR ]`;
+        if (c.isReusedCodeAttempt) {
+          labelBtn = `[ Simular que el cliente presenta código SUSHI-8X91B ]`;
+        }
+
+        el.innerHTML = `
+          <div class="card">
+            <div style="font-weight: 700; font-size: 0.9rem;">Escanear Cliente</div>
+            <p style="font-size: 0.75rem; color: var(--text-muted);">
+              Apuntá la cámara al QR o código presentado por el cliente en mostrador
+            </p>
+            
+            <div class="scanner-mock">
+              <div class="scan-laser"></div>
+              <div style="font-size: 1.5rem;">📷</div>
+              <div>Cámara activa · Esperando código...</div>
+            </div>
+
+            <button class="btn btn-action" onclick="executeScanByStory()">
+              ${labelBtn}
+            </button>
+            <button class="btn btn-outline" onclick="promptManualDni()">
+              Ingresar DNI / Código manual
+            </button>
+          </div>
+        `;
+        return;
+      }
+
+      // 2. CLIENTE DETECTADO (Normal o con Premio disponible)
+      if (state.cajaMode === "CLIENT_DETECTED") {
+        let prizeAlert = '';
+        let actionButtons = '';
+
+        if (c.hasAvailablePrize) {
+          prizeAlert = `
+            <div class="alert-box success">
+              🎁 <b>CLIENTE CON BENEFICIO DISPONIBLE</b><br>
+              Tiene guardado: <b>Combo 15 Piezas Gratis</b> (<code>${c.prizeCode}</code>).
+            </div>
+          `;
+
+          // SI TIENE PREMIO: El cajero tiene LAS DOS OPCIONES clarísimas
+          actionButtons = `
+            <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 2px;">
+              ¿Qué desea hacer el cliente en este pedido?
+            </p>
+            
+            <button class="btn btn-action" style="background: var(--success);" onclick="openCanjeModal()">
+              [ 1. Canjear Premio Hoy (Combo Gratis) ]
+            </button>
+            
+            <button class="btn btn-action" style="margin-top: 4px;" onclick="sumarVisitaConservandoPremio()">
+              [ 2. Pagar normal y Sumar Visita (Guardar Premio) ]
+            </button>
+          `;
+        } else {
+          // Cliente normal sin premio
+          actionButtons = `
+            <p style="font-size: 0.74rem; color: var(--text-muted);">
+              Cobro recibido en caja. Confirmar acreditación de compra.
+            </p>
+
+            <button class="btn btn-action" onclick="confirmarCompraConPingPong()">
+              [ + SUMAR VISITA ]
+            </button>
+          `;
+        }
+
+        el.innerHTML = `
+          <div class="card">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+              <div>
+                <div style="font-size: 1.1rem; font-weight: 700;">${c.name}</div>
+                <div style="font-size: 0.75rem; color: var(--text-muted);">${c.phone}</div>
+              </div>
+              <span style="font-size: 0.7rem; background: #232836; padding: 3px 6px; border-radius: 4px;">QR Válido ✓</span>
+            </div>
+
+            <div class="metric-box">
+              <span style="font-size: 0.78rem; color: var(--text-muted);">Estado actual:</span>
+              <span style="font-size: 1.1rem; font-weight: 800; color: #f59e0b;">⭐ ${c.visits} / 8 visitas</span>
+            </div>
+
+            ${prizeAlert}
+            ${actionButtons}
+
+            <button class="btn btn-outline" style="margin-top: 4px;" onclick="cancelarEscaneo()">
+              Cancelar / Volver a Cámara
+            </button>
+          </div>
+        `;
+        return;
+      }
+
+      // 3. PROCESANDO
+      if (state.cajaMode === "PROCESSING") {
+        el.innerHTML = `
+          <div class="card" style="text-align: center; padding: 40px 14px;">
+            <div style="font-size: 1.3rem;">⏳</div>
+            <div style="font-weight: 700; margin: 10px 0 4px;">Registrando operación...</div>
+            <p style="font-size: 0.75rem; color: var(--text-muted);">
+              Disparando notificación oficial a WhatsApp
+            </p>
+          </div>
+        `;
+        return;
+      }
+
+      // 4. ÉXITO (Acreditada)
+      if (state.cajaMode === "SUCCESS_DONE") {
+        let extraNote = '';
+        if (c.hasAvailablePrize) {
+          extraNote = `
+            <div class="alert-box success" style="margin-top: 8px; text-align: left; font-size: 0.75rem;">
+              🎁 <b>Nota:</b> El cupón <code>${c.prizeCode}</code> sigue <b>activo y guardado</b> en la cuenta para un próximo pedido.
+            </div>
+          `;
+        }
+
+        el.innerHTML = `
+          <div class="card" style="text-align: center;">
+            <div style="font-size: 1.4rem; color: var(--success);">✓</div>
+            <div style="font-weight: 700; font-size: 1.05rem;">Visita Acreditada</div>
+            <div style="font-size: 1.3rem; font-weight: 800; color: #56d364; margin: 6px 0;">
+              ⭐ ${c.visits} / 8
+            </div>
+            <p style="font-size: 0.75rem; color: var(--text-muted);">
+              María ya recibió su confirmación en WhatsApp.
+            </p>
+
+            ${extraNote}
+
+            <div style="display: flex; gap: 8px; margin-top: 10px;">
+              <button class="btn btn-action" style="flex: 1;" onclick="cancelarEscaneo()">
+                Nueva Venta (Cámara)
+              </button>
+            </div>
+
+            <button class="btn-text" style="color: var(--danger); margin-top: 6px;" onclick="revertirVisita()">
+              ↺ Revertir última acreditación (Error de cobro)
+            </button>
+          </div>
+        `;
+        return;
+      }
+
+      // 5. ADVERTENCIA: DOBLE COMPRA SUCESIVA
+      if (state.cajaMode === "WARNING_QUICK_BUY") {
+        el.innerHTML = `
+          <div class="card">
+            <div style="font-size: 1rem; font-weight: 700;">${c.name}</div>
+            <div style="font-size: 0.75rem; color: var(--text-muted);">${c.phone}</div>
+
+            <div class="metric-box">
+              <span style="font-size: 0.78rem; color: var(--text-muted);">Estado:</span>
+              <span style="font-size: 1.1rem; font-weight: 800;">⭐ ${c.visits} / 8</span>
+            </div>
+
+            <div class="alert-box warn">
+              <b>COMPRA MUY RECIENTE DETECTADA</b><br>
+              Se acreditó una visita a esta cuenta <b>hace 30 segundos</b>.<br><br>
+              ¿El cliente realizó un <b>segundo ticket real</b> (ej. comió en salón y ahora compra para llevar) o fue un doble clic accidental?
+            </div>
+
+            <button class="btn btn-action" onclick="forzarSegundaCompra()">
+              [ SÍ, CONFIRMAR SEGUNDA COMPRA ]
+            </button>
+            <button class="btn btn-outline" onclick="cancelarEscaneo()">
+              Cancelar (Fue doble clic accidental)
+            </button>
+          </div>
+        `;
+        return;
+      }
+
+      // 6. CONFIRMACIÓN DE CANJE
+      if (state.cajaMode === "CANJE_CONFIRM") {
+        el.innerHTML = `
+          <div class="card">
+            <div style="font-weight: 700;">Canje de Recompensa</div>
+            <div style="font-size: 0.78rem; color: var(--text-muted);">Cliente: <b>${c.name}</b></div>
+
+            <div class="alert-box success">
+              <b>PREMIO VÁLIDO EN CUENTA</b><br>
+              Beneficio: <b>Combo 15 Piezas Gratis</b><br>
+              Código: <code>${c.prizeCode}</code>
+            </div>
+
+            <p style="font-size: 0.74rem; color: var(--text-muted);">
+              Al confirmar entrega, el código se quemará definitivamente.
+            </p>
+
+            <button class="btn btn-action" style="background: var(--success);" onclick="ejecutarCanjeConPingPong()">
+              [ ENTREGAR PREMIO Y QUEMAR CÓDIGO ]
+            </button>
+            <button class="btn btn-outline" onclick="cancelarCanje()">
+              Volver (Elegir pagar normal y guardar premio)
+            </button>
+          </div>
+        `;
+        return;
+      }
+
+      // 7. CANJE EXITOSO
+      if (state.cajaMode === "CANJE_DONE") {
+        el.innerHTML = `
+          <div class="card" style="text-align: center;">
+            <div style="font-size: 1.4rem; color: var(--success);">✓</div>
+            <div style="font-weight: 700; font-size: 1.05rem;">Premio Canjeado</div>
+            <p style="font-size: 0.75rem; color: var(--text-muted);">
+              Código <code>${c.prizeCode}</code> quemado de forma irreversible.<br>
+              La cuenta de María volvió a <b>0 / 8 ⭐</b> para el próximo ciclo.
+            </p>
+
+            <button class="btn btn-outline" style="margin-top: 10px;" onclick="cancelarEscaneo()">
+              Cámara Lista para Siguiente Cliente
+            </button>
+          </div>
+        `;
+        return;
+      }
+
+      // 8. FRAUDE (Cupón quemado)
+      if (state.cajaMode === "REUSED_BLOCKED") {
+        el.innerHTML = `
+          <div class="card">
+            <div style="font-weight: 700; font-size: 0.95rem; color: var(--danger);">Rechazo de Canje</div>
+            <div style="font-size: 0.75rem; color: var(--text-muted);">Código ingresado: <code>${c.prizeCode}</code></div>
+
+            <div class="alert-box danger">
+              <b>PREMIO YA UTILIZADO ANTERIORMENTE</b><br>
+              Este beneficio fue canjeado el <b>${c.redeemedAt}</b> por <b>Caja 1</b>.<br>
+              El código se encuentra sin validez y no puede entregarse otro combo.
+            </div>
+
+            <button class="btn btn-outline" onclick="cancelarEscaneo()">
+              Volver a Terminal (Cámara)
+            </button>
+          </div>
+        `;
+        return;
+      }
+    }
+
+    function renderWhatsApp() {
+      const el = document.getElementById('wa-chat');
+      const max = state.client.max;
+
+      let html = '';
+      state.chatHistory.forEach(msg => {
+        let cardContent = '';
+        if (msg.snapshotVisits !== undefined) {
+          let stamps = '';
+          for (let i = 1; i <= max; i++) {
+            const isFilled = i <= msg.snapshotVisits;
+            const isPrize = i === max;
+            let cls = 'stamp';
+            if (isPrize) cls += ' prize';
+            if (isFilled) cls += ' active';
+            stamps += `<div class="${cls}">${isPrize ? '🎁' : i}</div>`;
+          }
+
+          cardContent = `
+            <div class="stamps-box">
+              <div style="font-size: 0.65rem; color: #8b949e; text-transform: uppercase;">Tarjeta Digital</div>
+              <div class="grid-stamps">${stamps}</div>
+              <div class="qr-client-img"><div class="qr-lines"></div></div>
+              <div style="font-size: 0.65rem; color: #8b949e; margin-top: 3px;">Mostralo al pagar</div>
+            </div>
+          `;
+        }
+
+        html += `
+          <div class="wa-msg ${msg.type}">
+            ${msg.text}
+            ${cardContent}
+            <div class="wa-time">${msg.time} ✓✓</div>
+          </div>
+        `;
+      });
+
+      el.innerHTML = html;
+      el.scrollTop = el.scrollHeight;
+    }
+
+    // ACCIONES
+    function executeScanByStory() {
+      if (state.client.isReusedCodeAttempt) {
+        state.cajaMode = "REUSED_BLOCKED";
+      } else if (state.client.isImmediateSecondBuyStory) {
+        state.cajaMode = "WARNING_QUICK_BUY";
+      } else {
+        state.cajaMode = "CLIENT_DETECTED";
+      }
+      render();
+    }
+
+    function cancelarEscaneo() {
+      state.cajaMode = "SCAN_READY";
+      render();
+    }
+
+    function confirmarCompraConPingPong() {
+      state.cajaMode = "PROCESSING";
+      render();
+
+      setTimeout(() => {
+        state.client.visits++;
+        const newVisits = state.client.visits;
+        state.cajaMode = "SUCCESS_DONE";
+
+        state.chatHistory.push({
+          type: "recv",
+          text: `🎉 <b>¡Visita acreditada!</b><br>Tu tarjeta ahora está en <b>${newVisits} / 8 ⭐</b>.<br>Te faltan ${8 - newVisits} visitas para tu Combo Gratis.`,
+          snapshotVisits: newVisits,
+          time: "20:15"
+        });
+
+        render();
+      }, 1100);
+    }
+
+    // NUEVA FUNCIÓN CLAVE: Sumar visita pero conservando el premio intacto
+    function sumarVisitaConservandoPremio() {
+      state.cajaMode = "PROCESSING";
+      render();
+
+      setTimeout(() => {
+        // La tarjeta de visitas empieza su nuevo ciclo en 1/8
+        state.client.visits = 1;
+        state.cajaMode = "SUCCESS_DONE";
+
+        state.chatHistory.push({
+          type: "recv",
+          text: `🎉 <b>¡Visita acreditada!</b><br>Empezaste un nuevo ciclo: <b>1 / 8 ⭐</b>.<br><br>🎁 <i>Recordatorio:</i> Tu premio <b>Combo 15 Piezas (<code>${state.client.prizeCode}</code>)</b> sigue guardado en tu cuenta para cuando decidas usarlo.`,
+          snapshotVisits: 1,
+          time: "20:25"
+        });
+
+        render();
+      }, 1100);
+    }
+
+    function forzarSegundaCompra() {
+      state.cajaMode = "PROCESSING";
+      render();
+
+      setTimeout(() => {
+        state.client.visits++;
+        const newVisits = state.client.visits;
+        state.cajaMode = "SUCCESS_DONE";
+
+        state.chatHistory.push({
+          type: "recv",
+          text: `🎉 <b>¡Segunda compra acreditada!</b><br>Tu tarjeta ahora está en <b>${newVisits} / 8 ⭐</b>.`,
+          snapshotVisits: newVisits,
+          time: "20:46"
+        });
+
+        render();
+      }, 1000);
+    }
+
+    function revertirVisita() {
+      if (state.client.visits > 0) {
+        state.client.visits--;
+      }
+      const currentVisits = state.client.visits;
+      state.cajaMode = "CLIENT_DETECTED";
+
+      state.chatHistory.push({
+        type: "recv",
+        text: `⚠️ <b>Aviso de ajuste en caja</b><br>Se corrigió la última operación de cobro.<br>Tu tarjeta vuelve a <b>${currentVisits} / 8 ⭐</b>.`,
+        snapshotVisits: currentVisits,
+        time: "20:18"
+      });
+
+      render();
+    }
+
+    function openCanjeModal() {
+      state.cajaMode = "CANJE_CONFIRM";
+      render();
+    }
+
+    function cancelarCanje() {
+      state.cajaMode = "CLIENT_DETECTED";
+      render();
+    }
+
+    function ejecutarCanjeConPingPong() {
+      state.cajaMode = "PROCESSING";
+      render();
+
+      setTimeout(() => {
+        state.client.visits = 0;
+        state.client.hasAvailablePrize = false;
+        state.client.redeemedAt = "Hoy · 21:10";
+        state.cajaMode = "CANJE_DONE";
+
+        state.chatHistory.push({
+          type: "recv",
+          text: `🍣 <b>¡Premio entregado en el local!</b><br>Canjeaste tu Combo 15 Piezas.<br>El código <code>${state.client.prizeCode}</code> quedó quemado.<br>Tu nueva tarjeta arranca en <b>0 / 8 ⭐</b>.`,
+          snapshotVisits: 0,
+          time: "21:10"
+        });
+
+        render();
+      }, 1100);
+    }
+
+    function promptManualDni() {
+      alert("En el sistema real, el cajero puede tipear el número si la cámara del celular no enfoca.");
+    }
+
+    // Arrancar en Historia 1
+    startStory(1);
+  </script>
+</body>
+</html>
