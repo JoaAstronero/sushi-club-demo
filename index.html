@@ -950,7 +950,7 @@
       }
     }
 
-    function updateSetupMath() {
+    function updateSetupMath(rebuildList = true) {
       const dq = Number(document.getElementById('cfg-rubro').value);
       const m = (Number(document.getElementById('cfg-margin-input').value) || 65) / 100;
       const sliderVal = Number(document.getElementById('cfg-slider').value);
