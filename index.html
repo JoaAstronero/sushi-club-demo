@@ -813,6 +813,9 @@
               <div class="prize-list" id="prize-list-container">
                 ${prizeRowsHtml}
               </div>
+              <button class="btn btn-outline" style="margin-top: 6px; font-size: 0.72rem; padding: 7px 10px; border-style: dashed; width: 100%; color: #79c0ff; border-color: #388bfd; background: rgba(56, 139, 253, 0.05); display: flex; align-items: center; justify-content: center; gap: 6px;" onclick="openPrizePlaygroundModal()">
+                <span>+</span> <b>Diseñar y Probar Nuevo Beneficio (Playground)</b>
+              </button>
             </div>
 
             <button class="btn btn-action" style="margin-top: 6px;" onclick="applySetupAndGoToCashier()">
@@ -1125,9 +1128,12 @@
             </div>
             <div style="text-align:right; display:flex; flex-direction:column; align-items:flex-end; gap:3px;">
               <span class="prize-badge" style="font-size:0.7rem; padding:2px 5px; background:${isDeficitItem ? 'rgba(248,81,73,0.2)' : (isWarnItem ? 'rgba(245,158,11,0.2)' : '#1c2230')}; color:${isDeficitItem ? '#ff7b72' : (isWarnItem ? '#f59e0b' : '#56d364')};">${p.points} PTS</span>
-              <span style="font-size:0.6rem; color:${isDeficitItem ? '#ff7b72' : (isSelected ? '#79c0ff' : 'var(--text-muted)')}; font-weight:600;">
-                ${isSelected ? (isDeficitItem ? '● En Déficit' : '● Validando') : 'Tocá para validar'}
-              </span>
+              <div style="display:flex; align-items:center; gap:6px;">
+                <span style="font-size:0.6rem; color:${isDeficitItem ? '#ff7b72' : (isSelected ? '#79c0ff' : 'var(--text-muted)')}; font-weight:600;">
+                  ${isSelected ? (isDeficitItem ? '● En Déficit' : '● Validando') : 'Tocá para validar'}
+                </span>
+                ${!p.isDefault ? `<button onclick="event.stopPropagation(); deletePrize(${idx});" style="background:transparent; border:none; color:#8b949e; cursor:pointer; font-size:0.75rem; padding:0 2px; line-height:1;" title="Eliminar beneficio">✕</button>` : ''}
+              </div>
             </div>
           </div>
         `;
@@ -1165,6 +1171,341 @@
         stateB.config.prizes[idx].worstCaseCost = Math.round(val * (1 - (m / 100)));
       }
       updateSetupMath();
+    }
+
+    function deletePrize(idx) {
+      if (stateB.config.prizes.length <= 1) return;
+      stateB.config.prizes.splice(idx, 1);
+      if (stateB.config.activePrizeIndex >= stateB.config.prizes.length) {
+        stateB.config.activePrizeIndex = 0;
+      }
+      updateSetupMath();
+    }
+
+    // ==========================================
+    // PLAYGROUND MODAL PARA NUEVOS BENEFICIOS
+    // ==========================================
+    const playgroundState = {
+      type: 'FIXED', // 'FIXED' | 'PERCENT_CAP'
+      name: 'Gyozas de Salmón (6u)',
+      retailPrice: 4500,
+      marginPercent: 65,
+      discountPercent: 25,
+      ticketMax: 16000,
+      customPoints: null
+    };
+
+    function openPrizePlaygroundModal() {
+      const mGlobal = (Number(document.getElementById('cfg-margin-input') ? document.getElementById('cfg-margin-input').value : stateB.config.marginPercent) || 65);
+      playgroundState.marginPercent = mGlobal;
+      playgroundState.customPoints = null;
+      if (!playgroundState.name) {
+        playgroundState.name = playgroundState.type === 'FIXED' ? 'Gyozas de Salmón (6u)' : '25% OFF en Factura';
+      }
+      const modal = document.getElementById('prize-playground-modal');
+      if (modal) {
+        modal.style.display = 'flex';
+        renderPlaygroundModal();
+      }
+    }
+
+    function closePrizePlaygroundModal() {
+      const modal = document.getElementById('prize-playground-modal');
+      if (modal) {
+        modal.style.display = 'none';
+      }
+    }
+
+    function setPlaygroundType(type) {
+      playgroundState.type = type;
+      playgroundState.customPoints = null;
+      if (type === 'FIXED' && (!playgroundState.name || playgroundState.name.includes('OFF'))) {
+        playgroundState.name = 'Gyozas de Salmón (6u)';
+      } else if (type === 'PERCENT_CAP' && (!playgroundState.name || !playgroundState.name.includes('OFF'))) {
+        playgroundState.name = `${playgroundState.discountPercent}% OFF en Factura`;
+      }
+      renderPlaygroundModal();
+    }
+
+    function updatePlaygroundField(field, val) {
+      playgroundState[field] = val;
+      if (field === 'discountPercent' && playgroundState.type === 'PERCENT_CAP') {
+        if (!playgroundState.name || playgroundState.name.includes('OFF')) {
+          playgroundState.name = `${val}% OFF en Factura`;
+        }
+      }
+      renderPlaygroundModal();
+    }
+
+    function updatePlaygroundPoints(pts) {
+      const val = Number(pts);
+      if (val >= 10) {
+        playgroundState.customPoints = val;
+        renderPlaygroundModal();
+      }
+    }
+
+    function setPlaygroundPointsDefault(sugPts) {
+      playgroundState.customPoints = sugPts;
+      renderPlaygroundModal();
+    }
+
+    function calculatePlaygroundSuggestedPoints(costo) {
+      const vpVal = stateB.config.vPuntoMax || 34;
+      const rawPts = costo / vpVal;
+      const ptsPagados = Math.ceil(rawPts / 10) * 10;
+      return ptsPagados + 20; // Absorbe bono inicial de bienvenida
+    }
+
+    function savePlaygroundPrizeToCatalog() {
+      const name = (playgroundState.name || '').trim();
+      if (!name) {
+        alert("Por favor escribí el nombre del producto o beneficio.");
+        return;
+      }
+
+      const mGlobal = (Number(document.getElementById('cfg-margin-input') ? document.getElementById('cfg-margin-input').value : stateB.config.marginPercent) || 65);
+      const isPercent = (playgroundState.type === 'PERCENT_CAP');
+      
+      let retailPrice = 0;
+      let worstCaseCost = 0;
+      if (!isPercent) {
+        retailPrice = Number(playgroundState.retailPrice) || 4500;
+        const itemMargin = Number(playgroundState.marginPercent) || mGlobal;
+        worstCaseCost = Math.round(retailPrice * (1 - (itemMargin / 100)));
+      } else {
+        const discPct = Number(playgroundState.discountPercent) || 25;
+        const ticketMax = Number(playgroundState.ticketMax) || 16000;
+        retailPrice = ticketMax;
+        worstCaseCost = Math.round(ticketMax * (discPct / 100));
+      }
+
+      const pts = playgroundState.customPoints !== null ? playgroundState.customPoints : calculatePlaygroundSuggestedPoints(worstCaseCost);
+
+      const newPrize = {
+        id: Date.now(),
+        name: name,
+        type: playgroundState.type,
+        retailPrice: retailPrice,
+        worstCaseCost: worstCaseCost,
+        points: pts,
+        isDefault: false,
+        isCustomPoints: true
+      };
+
+      stateB.config.prizes.push(newPrize);
+      stateB.config.activePrizeIndex = stateB.config.prizes.length - 1;
+      closePrizePlaygroundModal();
+      updateSetupMath();
+    }
+
+    function renderPlaygroundModal() {
+      const container = document.getElementById('playground-modal-content');
+      if (!container) return;
+
+      const mGlobal = (Number(document.getElementById('cfg-margin-input') ? document.getElementById('cfg-margin-input').value : stateB.config.marginPercent) || 65);
+      const isPercent = (playgroundState.type === 'PERCENT_CAP');
+      const crec = Number(stateB.config.recommendedPercent);
+      const cmax = Number(stateB.config.maxSafePercent);
+      const vpVal = Math.round(stateB.config.vPuntoMax || 34);
+      const bonoBienvenida = 20;
+
+      let costoReal = 0;
+      let typeSpecificFields = '';
+
+      if (!isPercent) {
+        const itemM = Number(playgroundState.marginPercent) || mGlobal;
+        const pvp = Number(playgroundState.retailPrice) || 0;
+        costoReal = Math.round(pvp * (1 - (itemM / 100)));
+
+        typeSpecificFields = `
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+            <div>
+              <label style="font-size: 0.68rem; color: var(--text-muted);">Precio de carta ($):</label>
+              <input type="number" class="input-field" style="margin-top:2px;" value="${pvp}" oninput="updatePlaygroundField('retailPrice', Number(this.value))">
+            </div>
+            <div>
+              <label style="font-size: 0.68rem; color: var(--text-muted);">Margen del plato (%):</label>
+              <input type="number" class="input-field" style="margin-top:2px;" value="${itemM}" oninput="updatePlaygroundField('marginPercent', Number(this.value))">
+            </div>
+          </div>
+          <div style="font-size: 0.66rem; color: var(--text-muted); display: flex; justify-content: space-between; background: #0d0f15; padding: 5px 8px; border-radius: 4px;">
+            <span>Costo reposición cocina (CMV ~${100 - itemM}%):</span>
+            <b style="color: #ff7b72;">$${costoReal.toLocaleString('es-AR')}</b>
+          </div>
+        `;
+      } else {
+        const disc = Number(playgroundState.discountPercent) || 25;
+        const maxTicket = Number(playgroundState.ticketMax) || 16000;
+        costoReal = Math.round(maxTicket * (disc / 100));
+
+        typeSpecificFields = `
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+            <div>
+              <label style="font-size: 0.68rem; color: var(--text-muted);">% Descuento:</label>
+              <input type="number" class="input-field" style="margin-top:2px;" min="5" max="70" value="${disc}" oninput="updatePlaygroundField('discountPercent', Number(this.value))">
+            </div>
+            <div>
+              <label style="font-size: 0.68rem; color: var(--text-muted);">Ticket máx. aplicable ($):</label>
+              <input type="number" class="input-field" style="margin-top:2px;" value="${maxTicket}" oninput="updatePlaygroundField('ticketMax', Number(this.value))">
+            </div>
+          </div>
+          <div style="font-size: 0.66rem; color: var(--text-muted); display: flex; justify-content: space-between; background: #0d0f15; padding: 5px 8px; border-radius: 4px;">
+            <span>Tope máximo de descuento en factura:</span>
+            <b style="color: #ff7b72;">$${costoReal.toLocaleString('es-AR')}</b>
+          </div>
+        `;
+      }
+
+      // Puntos sugeridos y cálculos de incidencia
+      const ptsSugeridos = calculatePlaygroundSuggestedPoints(costoReal);
+      const currentPts = playgroundState.customPoints !== null ? playgroundState.customPoints : ptsSugeridos;
+      const ptsPagados1er = Math.max(10, currentPts - bonoBienvenida);
+      const gasto1er = ptsPagados1er * 1000;
+      const gastoReg = currentPts * 1000;
+      const pct1er = gasto1er > 0 ? (costoReal / gasto1er) * 100 : 0;
+      const pctReg = gastoReg > 0 ? (costoReal / gastoReg) * 100 : 0;
+      const visitas = Math.ceil(gasto1er / 10000);
+
+      const isDeficit = pct1er > (cmax + 0.05);
+      const isWarning = (!isDeficit) && (pct1er > (crec + 0.05));
+      const isSafe = !isDeficit && !isWarning;
+
+      let statusColor = '#56d364';
+      let trafficBg = 'rgba(35, 134, 54, 0.14)';
+      let trafficBorder = '#238636';
+      let trafficTitle = '✓ DENTRO DEL OBJETIVO SEGURO';
+      let trafficExplanation = `<b>Bono de 20 pts absorbido:</b> En el 1er canje el costo es de <b>${pct1er.toFixed(1)}%</b> ($\le$ objetivo ${crec}%). En canjes siguientes se reduce a <b>${pctReg.toFixed(1)}%</b>.`;
+
+      if (isDeficit) {
+        statusColor = '#ff7b72';
+        trafficBg = 'rgba(248, 81, 73, 0.16)';
+        trafficBorder = '#f85149';
+        trafficTitle = '🚨 DÉFICIT: PERFORA MARGEN MÁXIMO';
+        trafficExplanation = `Supera el techo seguro (${cmax}%). Con este puntaje el comercio subsidia más de lo que la recurrencia proyectada puede compensar.`;
+      } else if (isWarning) {
+        statusColor = '#f59e0b';
+        trafficBg = 'rgba(245, 158, 11, 0.14)';
+        trafficBorder = '#f59e0b';
+        trafficTitle = '⚠️ EXCEDE OBJETIVO · CONSUME COLCHÓN';
+        trafficExplanation = `Supera el objetivo deseado (${crec}%), pero no perfora el techo (${cmax}%). Reduce tu colchón de seguridad ante contingencias.`;
+      }
+
+      const minSlider = Math.max(20, Math.floor(ptsSugeridos * 0.4 / 10) * 10);
+      const maxSlider = Math.max(120, Math.ceil(ptsSugeridos * 1.8 / 10) * 10);
+
+      container.innerHTML = `
+        <!-- HEADER -->
+        <div style="padding: 13px 16px; border-bottom: 1px solid #232838; display: flex; justify-content: space-between; align-items: center; background: #0c0e14;">
+          <div>
+            <div style="font-weight: 800; font-size: 0.92rem; color: #fff;">Playground: Diseñar Beneficio</div>
+            <div style="font-size: 0.67rem; color: var(--text-muted); margin-top: 2px;">
+              Simulá el impacto en margen antes de sumarlo a la carta de premios.
+            </div>
+          </div>
+          <button onclick="closePrizePlaygroundModal()" style="background: transparent; border: none; color: #8b949e; font-size: 1.1rem; cursor: pointer; padding: 4px 8px; border-radius: 4px;">✕</button>
+        </div>
+
+        <!-- BODY CON SCROLL -->
+        <div style="padding: 13px 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 11px;">
+
+          <!-- SELECTOR DE TIPO (Divulgación progresiva) -->
+          <div>
+            <label style="font-size: 0.68rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">Modalidad de Beneficio:</label>
+            <div style="display: flex; gap: 8px; margin-top: 4px;">
+              <button class="sys-tab ${!isPercent ? 'active' : ''}" style="flex:1; padding: 7px; font-size: 0.72rem;" onclick="setPlaygroundType('FIXED')">
+                Plato / Producto Gratis
+              </button>
+              <button class="sys-tab ${isPercent ? 'active' : ''}" style="flex:1; padding: 7px; font-size: 0.72rem;" onclick="setPlaygroundType('PERCENT_CAP')">
+                % Descuento en Factura
+              </button>
+            </div>
+          </div>
+
+          <!-- CAMPOS DE DEFINICIÓN -->
+          <div style="background: #171b26; border: 1px solid #232838; border-radius: 8px; padding: 10px 12px; display: flex; flex-direction: column; gap: 8px;">
+            <div>
+              <label style="font-size: 0.68rem; color: var(--text-muted);">Nombre para mostrar al cliente:</label>
+              <input type="text" class="input-field" style="margin-top:2px;" id="pg-input-name" placeholder="Ej: Gyozas de Salmón (6u)" value="${playgroundState.name}" oninput="updatePlaygroundField('name', this.value)">
+            </div>
+
+            ${typeSpecificFields}
+          </div>
+
+          <!-- PLAYGROUND DE SIMULACIÓN INTERACTIVA -->
+          <div style="background: #0d0f15; border: 1px solid #1f2433; border-radius: 8px; padding: 10px 12px; display: flex; flex-direction: column; gap: 8px;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span style="font-size: 0.72rem; font-weight: 700; color: #79c0ff; text-transform: uppercase;">Playground de Puntos</span>
+              <span style="font-size: 0.65rem; color: var(--text-muted);">Regla: 1 pt = hasta $${vpVal}</span>
+            </div>
+
+            <!-- CONTROLES DE PUNTOS -->
+            <div>
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                <span style="font-size: 0.7rem; color: var(--text-muted);">Meta requerida:</span>
+                <div style="display: flex; align-items: center; gap: 4px;">
+                  <input type="number" class="input-field" style="width: 60px; padding: 2px 5px; font-size: 0.85rem; font-weight: 800; text-align: right; color: ${statusColor};" value="${currentPts}" oninput="updatePlaygroundPoints(this.value)">
+                  <b style="font-size: 0.72rem; color: ${statusColor};">PTS</b>
+                </div>
+              </div>
+
+              <input type="range" class="slider" min="${minSlider}" max="${maxSlider}" step="10" value="${currentPts}" oninput="updatePlaygroundPoints(this.value)" style="width: 100%;">
+              <div style="display: flex; justify-content: space-between; font-size: 0.6rem; color: var(--text-muted); margin-top: 2px;">
+                <span>Más accesible (${minSlider} pts)</span>
+                <span style="color:#79c0ff;">Sugerido (${ptsSugeridos} pts)</span>
+                <span>Ultra seguro (${maxSlider} pts)</span>
+              </div>
+            </div>
+
+            <div style="display: flex; justify-content: flex-end;">
+              <button onclick="setPlaygroundPointsDefault(${ptsSugeridos})" style="background: rgba(56, 139, 253, 0.12); border: 1px solid rgba(56, 139, 253, 0.3); color: #79c0ff; font-size: 0.65rem; padding: 3px 8px; border-radius: 4px; cursor: pointer;">
+                ↺ Restablecer Puntos Sugeridos (${ptsSugeridos} PTS)
+              </button>
+            </div>
+
+            <!-- SEMÁFORO DE INCIDENCIA EN TIEMPO REAL -->
+            <div style="background: ${trafficBg}; border: 1px solid ${trafficBorder}; border-radius: 6px; padding: 8px 10px; margin-top: 2px;">
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-size: 0.7rem; font-weight: 800; color: ${statusColor};">${trafficTitle}</span>
+                <span style="font-size: 1.15rem; font-weight: 900; color: ${statusColor};">${pct1er.toFixed(1)}%</span>
+              </div>
+              <div style="font-size: 0.65rem; color: #c9d1d9; margin-top: 3px; line-height: 1.3;">
+                ${trafficExplanation}
+              </div>
+            </div>
+
+            <!-- DESGLOSE ECONÓMICO RÁPIDO -->
+            <div style="font-size: 0.67rem; color: var(--text-muted); display: flex; flex-direction: column; gap: 3px; border-top: 1px solid #1a202c; padding-top: 6px;">
+              <div style="display: flex; justify-content: space-between;">
+                <span>• Venta previa en 1er canje (${ptsPagados1er} pts pagados + 20 regalo):</span>
+                <b style="color: #fff;">$${gasto1er.toLocaleString('es-AR')}</b>
+              </div>
+              <div style="display: flex; justify-content: space-between;">
+                <span>• Costo directo asumido por el local:</span>
+                <b style="color: #ff7b72;">-$${costoReal.toLocaleString('es-AR')}</b>
+              </div>
+              <div style="display: flex; justify-content: space-between;">
+                <span>• Incidencia en canjes posteriores (sin bono):</span>
+                <b style="color: #56d364;">${pctReg.toFixed(1)}%</b>
+              </div>
+              <div style="display: flex; justify-content: space-between;">
+                <span>• Visitas estimadas requeridas (~$10.000/visita):</span>
+                <b style="color: #79c0ff;">~${visitas} visitas</b>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- FOOTER -->
+        <div style="padding: 10px 16px; border-top: 1px solid #232838; display: flex; justify-content: flex-end; gap: 8px; background: #0c0e14;">
+          <button class="btn btn-outline" style="width: auto; padding: 6px 14px; font-size: 0.74rem;" onclick="closePrizePlaygroundModal()">
+            Cancelar
+          </button>
+          <button class="btn btn-action" style="width: auto; padding: 6px 16px; font-size: 0.74rem; background: ${isDeficit ? '#e04a3f' : 'var(--success)'};" onclick="savePlaygroundPrizeToCatalog()">
+            + Guardar en el Catálogo
+          </button>
+        </div>
+      `;
     }
 
     function applySetupAndGoToCashier() {
@@ -1848,5 +2189,11 @@
 
     switchSystemMode('PUNTOS');
   </script>
+
+  <!-- MODAL PLAYGROUND PARA DISEÑAR NUEVOS BENEFICIOS -->
+  <div id="prize-playground-modal" style="display: none; position: fixed; inset: 0; background: rgba(0, 0, 0, 0.82); z-index: 99999; align-items: center; justify-content: center; backdrop-filter: blur(5px); padding: 14px;" onclick="if(event.target === this) closePrizePlaygroundModal();">
+    <div id="playground-modal-content" class="modal-card" style="background: #12151e; border: 1px solid #2d3448; border-radius: 12px; width: 100%; max-width: 480px; max-height: 92vh; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 20px 45px rgba(0,0,0,0.8);">
+    </div>
+  </div>
 </body>
 </html>
