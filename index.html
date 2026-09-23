@@ -719,6 +719,9 @@
 
       renderControlsB();
       renderB();
+      if (stepId === 1) {
+        updateSetupMath();
+      }
     }
 
     function renderControlsB() {
@@ -787,7 +790,7 @@
               </div>
             </div>
 
-            <div class="alert-box info" style="padding: 7px 10px; font-size: 0.7rem; line-height: 1.4;">
+            <div class="alert-box info" id="box-budget-alert" style="padding: 7px 10px; font-size: 0.7rem; line-height: 1.4; transition: all 0.2s ease;">
               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
                 <span><b>Presupuesto seguro:</b> Techo: <b id="txt-cmax">4.8%</b> · Costo objetivo: <b id="txt-crec" style="color: #56d364;">3.4%</b></span>
                 <span style="background: rgba(56, 139, 253, 0.2); padding: 1px 6px; border-radius: 4px; font-weight: 700; color: #79c0ff;">
@@ -805,7 +808,7 @@
                 <span style="font-size: 0.68rem; color: #56d364;">Regla base: $1.000 = 1 pt</span>
               </div>
               <div style="font-size: 0.66rem; color: #79c0ff; margin-bottom: 4px;">
-                👆 Seleccioná un beneficio para validar en vivo su porcentaje de costo a la derecha.
+                👆 Seleccioná un beneficio o editá sus puntos para validar en vivo su porcentaje de costo.
               </div>
               <div class="prize-list" id="prize-list-container">
                 ${prizeRowsHtml}
@@ -959,8 +962,8 @@
         modeTxt = "Conservador";
         expTxt = "<b>Conservador:</b> Asigna un costo menor en beneficios (desde ~2.4%), priorizando máxima prudencia de caja.";
       } else if (sliderVal >= 90) {
-        modeTxt = "Flexible";
-        expTxt = "<b>Flexible:</b> Asigna hasta el límite del retorno sugerido (~4.8%), para incentivos de mayor tracción inicial.";
+        modeTxt = "Flexible (Límite Máximo)";
+        expTxt = "<b>Flexible:</b> Confiás en la proyección y usás el 100% de tu techo. <span style='color:#f59e0b;'>⚠️ Sin colchón ante imprevistos.</span>";
       }
       document.getElementById('label-slider-mode').innerText = `${modeTxt} (~${stateB.config.recommendedPercent}% costo)`;
       document.getElementById('txt-slider-explanation').innerHTML = expTxt;
@@ -976,8 +979,59 @@
       const elVpRule = document.getElementById('txt-vpunto-rule');
       if (elVpRule) elVpRule.innerText = vpVal;
 
-      // Redondeo estético seguro: siempre hacia arriba al múltiplo de 10 más cercano
-      // (Ceil step = 10 garantiza que R_real <= C_rec, el negocio jamás pierde margen)
+      // Actualizar tarjeta de presupuesto seguro con advertencia visual si está en el borde del abismo
+      const boxBudget = document.getElementById('box-budget-alert');
+      if (boxBudget) {
+        const colchon = (cmax * 100 - crec * 100).toFixed(1);
+        if (sliderVal >= 90) {
+          boxBudget.className = "alert-box warn";
+          boxBudget.style.borderLeft = "3px solid #f59e0b";
+          boxBudget.style.background = "rgba(245, 158, 11, 0.12)";
+          boxBudget.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
+              <span>⚠️ <b>Borde del abismo:</b> Techo: <b>${stateB.config.maxSafePercent}%</b> · Objetivo: <b style="color:#f59e0b;">${stateB.config.recommendedPercent}%</b></span>
+              <span style="background: rgba(245, 158, 11, 0.25); padding: 1px 6px; border-radius: 4px; font-weight: 700; color: #f59e0b;">
+                1 pt = hasta $${vpVal}
+              </span>
+            </div>
+            <div style="font-size: 0.65rem; color: #f59e0b; line-height: 1.25;">
+              Estás usando el 100% de tu margen seguro (colchón: 0.0%). Si las visitas adicionales rinden menos de lo estimado, entrás en zona deficitaria.
+            </div>
+          `;
+        } else if (sliderVal <= 50) {
+          boxBudget.className = "alert-box success";
+          boxBudget.style.borderLeft = "3px solid #56d364";
+          boxBudget.style.background = "rgba(86, 211, 100, 0.12)";
+          boxBudget.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
+              <span>🛡️ <b>Presupuesto conservador:</b> Techo: <b>${stateB.config.maxSafePercent}%</b> · Objetivo: <b style="color:#56d364;">${stateB.config.recommendedPercent}%</b></span>
+              <span style="background: rgba(86, 211, 100, 0.2); padding: 1px 6px; border-radius: 4px; font-weight: 700; color: #56d364;">
+                1 pt = hasta $${vpVal}
+              </span>
+            </div>
+            <div style="font-size: 0.65rem; color: var(--text-muted);">
+              Máximo colchón de seguridad (+${colchon}%). Muy bajo riesgo de descalce si las visitas no aumentan como se estimaba.
+            </div>
+          `;
+        } else {
+          boxBudget.className = "alert-box info";
+          boxBudget.style.borderLeft = "3px solid #388bfd";
+          boxBudget.style.background = "rgba(56, 139, 253, 0.1)";
+          boxBudget.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
+              <span>⚖️ <b>Presupuesto equilibrado:</b> Techo: <b>${stateB.config.maxSafePercent}%</b> · Objetivo: <b style="color:#56d364;">${stateB.config.recommendedPercent}%</b></span>
+              <span style="background: rgba(56, 139, 253, 0.2); padding: 1px 6px; border-radius: 4px; font-weight: 700; color: #79c0ff;">
+                1 pt = hasta $${vpVal}
+              </span>
+            </div>
+            <div style="font-size: 0.65rem; color: var(--text-muted);">
+              Colchón de seguridad: <b>+${colchon}%</b>. Regla mental: dividís el costo por $${vpVal} para obtener los puntos seguros.
+            </div>
+          `;
+        }
+      }
+
+      // Redondeo estético seguro si el premio no tiene puntos manuales personalizados
       const roundStep = 10;
       stateB.config.prizes.forEach(p => {
         if (p.type === 'PERCENT_CAP') {
@@ -985,8 +1039,10 @@
         } else {
           p.worstCaseCost = p.retailPrice;
         }
-        const rawPts = p.worstCaseCost / stateB.config.vPuntoMax;
-        p.points = Math.ceil(rawPts / roundStep) * roundStep;
+        if (!p.isCustomPoints) {
+          const rawPts = p.worstCaseCost / stateB.config.vPuntoMax;
+          p.points = Math.ceil(rawPts / roundStep) * roundStep;
+        }
       });
 
       const container = document.getElementById('prize-list-container');
@@ -1001,12 +1057,31 @@
     }
 
     function renderPrizeRowsHtml() {
+      const m = (Number(document.getElementById('cfg-margin-input') ? document.getElementById('cfg-margin-input').value : stateB.config.marginPercent) || 65);
+      const cmaxPct = Number(stateB.config.maxSafePercent);
+      const crecPct = Number(stateB.config.recommendedPercent);
+
       let rowsHtml = '';
       stateB.config.prizes.forEach((p, idx) => {
         const isSelected = (idx === (stateB.config.activePrizeIndex || 0));
         const isPercent = (p.type === 'PERCENT_CAP');
+        
+        let costoItem = isPercent ? p.worstCaseCost : Math.round(p.retailPrice * (1 - (m / 100)));
+        const gastoItem = p.points * stateB.config.ratioSpend;
+        const pctItem = gastoItem > 0 ? (costoItem / gastoItem) * 100 : 0;
+
+        const isDeficitItem = pctItem > (cmaxPct + 0.05);
+        const isWarnItem = (!isDeficitItem) && (pctItem > crecPct + 0.05);
+
+        let borderCol = isSelected ? '#388bfd' : '#232838';
+        let bgCol = isSelected ? '#131b2c' : '#0d0f15';
+        if (isDeficitItem) {
+          borderCol = isSelected ? '#f85149' : '#5c1d1d';
+          bgCol = isSelected ? '#251214' : '#170c0e';
+        }
+
         rowsHtml += `
-          <div class="prize-row" onclick="selectPrizeForInspection(${idx})" style="cursor:pointer; border: 1px solid ${isSelected ? '#388bfd' : '#232838'}; background: ${isSelected ? '#131b2c' : '#0d0f15'}; margin-bottom: 4px; padding: 6px 9px; border-radius: 6px; transition: all 0.15s ease;">
+          <div class="prize-row" onclick="selectPrizeForInspection(${idx})" style="cursor:pointer; border: 1px solid ${borderCol}; background: ${bgCol}; margin-bottom: 4px; padding: 6px 9px; border-radius: 6px; transition: all 0.15s ease;">
             <div style="flex:1;">
               <div style="display:flex; align-items:center; gap:5px; flex-wrap:wrap;">
                 <b style="color: ${isSelected ? '#fff' : '#c9d1d9'}; font-size: 0.76rem;">${p.name}</b>
@@ -1015,21 +1090,26 @@
                   ? '<span style="font-size:0.56rem; color:#79c0ff; background:rgba(121,192,255,0.12); padding:1px 4px; border-radius:3px;">Inmune a inflación</span>'
                   : '<span style="font-size:0.56rem; color:#d29922; background:rgba(210,153,34,0.15); padding:1px 4px; border-radius:3px;">Revisar cada 3-6 meses</span>'
                 }
+                ${isDeficitItem ? `<span style="font-size:0.56rem; color:#ff7b72; background:rgba(248,81,73,0.2); padding:1px 4px; border-radius:3px; font-weight:700;">🚨 Deficitario (${pctItem.toFixed(1)}%)</span>` : ''}
+                ${isWarnItem ? `<span style="font-size:0.56rem; color:#f59e0b; background:rgba(245,158,11,0.2); padding:1px 4px; border-radius:3px; font-weight:700;">⚠️ Ajustado (${pctItem.toFixed(1)}%)</span>` : ''}
               </div>
               <div style="color: var(--text-muted); font-size: 0.65rem; margin-top: 2px;">
                 ${isPercent 
                   ? 'Descuento en ticket. Si sube la carta, no requiere cambiar los puntos.' 
                   : 'Producto físico gratis. Si sube por inflación, conviene ajustar sus puntos.'}
               </div>
-              <div style="display:flex; align-items:center; gap:4px; margin-top:3px; font-size:0.67rem; color:var(--text-muted);" onclick="event.stopPropagation()">
-                <span>Precio Carta: $</span>
-                <input type="number" class="input-field" style="width:72px; padding:1px 4px; font-size:0.68rem; text-align:right;" value="${p.retailPrice}" oninput="updatePrizePrice(${idx}, this.value)">
+              <div style="display:flex; align-items:center; gap:8px; margin-top:3px; font-size:0.67rem; color:var(--text-muted);" onclick="event.stopPropagation()">
+                <span>Carta: $</span>
+                <input type="number" class="input-field" style="width:64px; padding:1px 4px; font-size:0.68rem; text-align:right;" value="${p.retailPrice}" oninput="updatePrizePrice(${idx}, this.value)">
+                <span>Meta:</span>
+                <input type="number" class="input-field" style="width:52px; padding:1px 4px; font-size:0.68rem; text-align:right; font-weight:700; color:${isDeficitItem ? '#ff7b72' : (isWarnItem ? '#f59e0b' : '#56d364')}; border-color:${isDeficitItem ? '#f85149' : '#283044'};" value="${p.points}" oninput="updatePrizePointsManual(${idx}, this.value)">
+                <span>PTS</span>
               </div>
             </div>
             <div style="text-align:right; display:flex; flex-direction:column; align-items:flex-end; gap:3px;">
-              <span class="prize-badge" style="font-size:0.7rem; padding:2px 5px;">${p.points} PTS</span>
-              <span style="font-size:0.6rem; color:${isSelected ? '#79c0ff' : 'var(--text-muted)'}; font-weight:600;">
-                ${isSelected ? '● Validando' : 'Tocá para validar'}
+              <span class="prize-badge" style="font-size:0.7rem; padding:2px 5px; background:${isDeficitItem ? 'rgba(248,81,73,0.2)' : (isWarnItem ? 'rgba(245,158,11,0.2)' : '#1c2230')}; color:${isDeficitItem ? '#ff7b72' : (isWarnItem ? '#f59e0b' : '#56d364')};">${p.points} PTS</span>
+              <span style="font-size:0.6rem; color:${isDeficitItem ? '#ff7b72' : (isSelected ? '#79c0ff' : 'var(--text-muted)')}; font-weight:600;">
+                ${isSelected ? (isDeficitItem ? '● En Déficit' : '● Validando') : 'Tocá para validar'}
               </span>
             </div>
           </div>
@@ -1043,15 +1123,49 @@
       updateSetupMath();
     }
 
+    function updatePrizePointsManual(idx, newPts) {
+      const val = Number(newPts);
+      if (val < 10) return;
+      stateB.config.prizes[idx].points = val;
+      stateB.config.prizes[idx].isCustomPoints = true;
+      updateSetupMath();
+    }
+
+    function resetPrizePointsSafe(idx, safePts) {
+      stateB.config.prizes[idx].points = safePts;
+      stateB.config.prizes[idx].isCustomPoints = false;
+      updateSetupMath();
+    }
+
     function updatePrizePrice(idx, newPrice) {
       const val = Number(newPrice) || 0;
       if (val < 100) return;
       stateB.config.prizes[idx].retailPrice = val;
+      if (stateB.config.prizes[idx].type === 'PERCENT_CAP') {
+        stateB.config.prizes[idx].worstCaseCost = Math.round(val * 0.5);
+      } else {
+        stateB.config.prizes[idx].worstCaseCost = val;
+      }
+      if (!stateB.config.prizes[idx].isCustomPoints) {
+        const rawPts = stateB.config.prizes[idx].worstCaseCost / stateB.config.vPuntoMax;
+        stateB.config.prizes[idx].points = Math.ceil(rawPts / 10) * 10;
+      }
       updateSetupMath();
     }
 
     function applySetupAndGoToCashier() {
-      updateSetupMath();
+      const m = (Number(document.getElementById('cfg-margin-input') ? document.getElementById('cfg-margin-input').value : stateB.config.marginPercent) || 65);
+      const cmax = Number(stateB.config.maxSafePercent);
+      const hasDeficit = stateB.config.prizes.some(p => {
+        let costo = (p.type === 'PERCENT_CAP') ? p.worstCaseCost : Math.round(p.retailPrice * (1 - (m / 100)));
+        let gasto = p.points * stateB.config.ratioSpend;
+        return gasto > 0 && ((costo / gasto) * 100) > (cmax + 0.05);
+      });
+
+      if (hasDeficit) {
+        alert("⚠️ ATENCIÓN: Tenés al menos un beneficio con costo superior a tu techo seguro de margen. Corregilo antes de pasar a caja de cobro.");
+        return;
+      }
       startStoryB(2);
     }
 
@@ -1148,45 +1262,101 @@
           aclaracionCosto = `Descuento directo del 50% aplicado en factura (tope $${p.worstCaseCost.toLocaleString('es-AR')}).`;
         }
 
-        const pctCostoReal = ((costoRealPremio / gastoAcumulado) * 100).toFixed(1);
+        const pctCostoReal = gastoAcumulado > 0 ? ((costoRealPremio / gastoAcumulado) * 100).toFixed(1) : "0.0";
         const crec = Number(stateB.config.recommendedPercent);
-        const isWithinLimit = Number(pctCostoReal) <= crec + 0.1;
-        const holgura = (crec - Number(pctCostoReal)).toFixed(1);
-        const valorPuntoPremio = (costoRealPremio / pts).toFixed(1);
+        const cmax = Number(stateB.config.maxSafePercent);
+        
+        const isDeficit = Number(pctCostoReal) > cmax + 0.05;
+        const isWarning = (!isDeficit) && (Number(pctCostoReal) > crec + 0.05);
+        const isSafe = !isDeficit && !isWarning;
+        
+        const safePointsTarget = Math.ceil((costoRealPremio / (crec / 100 * stateB.config.ratioSpend)) / 10) * 10;
+        const safePointsFloor = Math.ceil((costoRealPremio / (cmax / 100 * stateB.config.ratioSpend)) / 10) * 10;
+        const valorPuntoPremio = pts > 0 ? (costoRealPremio / pts).toFixed(1) : "0.0";
         const valorPuntoMax = Math.round(stateB.config.vPuntoMax);
         const visitasPromedio = Math.ceil(gastoAcumulado / 10000);
+
+        let heroHtml = '';
+        if (isDeficit) {
+          heroHtml = `
+            <div style="background: rgba(248, 81, 73, 0.16); border: 1.5px solid #f85149; border-radius: 8px; padding: 11px 12px; text-align: center;">
+              <div style="font-size: 0.68rem; color: #ff7b72; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 800;">
+                🚨 BENEFICIO FUERA DE RANGO SEGURO
+              </div>
+              <div style="font-size: 1.8rem; font-weight: 900; color: #ff7b72; margin: 2px 0;">
+                ${pctCostoReal}%
+              </div>
+              <div style="font-size: 0.74rem; font-weight: 700; color: #ff7b72;">
+                Supera tu techo máximo (${cmax}%) por +${(Number(pctCostoReal) - cmax).toFixed(1)} puntos
+              </div>
+              <div style="font-size: 0.67rem; color: #e6edf3; margin-top: 6px; line-height: 1.35; text-align: left; background: rgba(0,0,0,0.3); padding: 7px 9px; border-radius: 6px; border-left: 3px solid #ff7b72;">
+                <b>Riesgo directo de déficit:</b> Este premio es demasiado generoso para el volumen que exige (${pts} PTS). Cada canje absorbe más margen del que el cliente aporta en sus visitas.
+              </div>
+              <button class="btn" style="background: #e04a3f; color: #fff; margin-top: 8px; font-weight: 700; font-size: 0.73rem; padding: 7px 10px; border: none; border-radius: 5px; cursor: pointer; width: 100%;" onclick="resetPrizePointsSafe(${activeIdx}, ${safePointsTarget})">
+                ↺ AJUSTAR A PUNTOS SEGUROS (${safePointsTarget} PTS)
+              </button>
+            </div>
+          `;
+        } else if (isWarning) {
+          heroHtml = `
+            <div style="background: rgba(245, 158, 11, 0.14); border: 1px solid #f59e0b; border-radius: 8px; padding: 11px 12px; text-align: center;">
+              <div style="font-size: 0.67rem; color: #f59e0b; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 800;">
+                ⚠️ EXCEDE OBJETIVO · CONSUME COLCHÓN
+              </div>
+              <div style="font-size: 1.65rem; font-weight: 800; color: #f59e0b; margin: 2px 0;">
+                ${pctCostoReal}%
+              </div>
+              <div style="font-size: 0.73rem; font-weight: 700; color: #f59e0b;">
+                Supera tu objetivo (${crec}%) sin romper el techo (${cmax}%)
+              </div>
+              <div style="font-size: 0.66rem; color: var(--text-muted); margin-top: 4px;">
+                Consume parte del margen de resguardo. Podés calibrarlo a ${safePointsTarget} PTS para volver al objetivo recomendado.
+              </div>
+              <button class="btn" style="background: #232836; color: #e6edf3; border: 1px solid #3b455b; margin-top: 6px; font-weight: 600; font-size: 0.7rem; padding: 5px 8px; border-radius: 4px; cursor: pointer; width: 100%;" onclick="resetPrizePointsSafe(${activeIdx}, ${safePointsTarget})">
+                ↺ Calibrar a ${safePointsTarget} PTS
+              </button>
+            </div>
+          `;
+        } else {
+          heroHtml = `
+            <div style="background: rgba(35, 134, 54, 0.12); border: 1px solid #238636; border-radius: 8px; padding: 10px 12px; text-align: center;">
+              <div style="font-size: 0.66rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600;">
+                Costo del premio sobre ventas requeridas
+              </div>
+              <div style="font-size: 1.65rem; font-weight: 800; color: #56d364; margin: 2px 0;">
+                ${pctCostoReal}%
+              </div>
+              <div style="font-size: 0.74rem; font-weight: 700; color: #56d364;">
+                ✓ Dentro de tu objetivo seguro (${crec}%)
+              </div>
+              <div style="font-size: 0.65rem; color: var(--text-muted); margin-top: 3px;">
+                Este premio te cuesta ${pctCostoReal}% de las ventas acumuladas necesarias. Colchón frente al techo: +${(cmax - Number(pctCostoReal)).toFixed(1)}%.
+              </div>
+            </div>
+          `;
+        }
+
+        let footerNote = '';
+        if (isDeficit) {
+          footerNote = `🚨 <b>Acción recomendada:</b> Subí este premio a un mínimo de <b>${safePointsFloor} PTS</b> (o <b>${safePointsTarget} PTS</b> para objetivo calibrado) antes de habilitarlo en caja.`;
+        } else {
+          footerNote = `💡 <b>Validación técnica:</b> Para llevarse un beneficio de <b>$${costoRealPremio.toLocaleString('es-AR')}</b>, el cliente debe dejar previamente en caja <b>$${gastoAcumulado.toLocaleString('es-AR')}</b>. El programa no compromete margen imprevisto.`;
+        }
 
         if (bodyEl) {
           bodyEl.innerHTML = `
             <div class="caja-body">
               <!-- TARJETA RADIOGRAFÍA FINANCIERA -->
-              <div class="card">
+              <div class="card" style="${isDeficit ? 'border-color: #f85149;' : ''}">
                 <div style="display: flex; justify-content: space-between; align-items: center;">
-                  <span style="font-weight: 700; font-size: 0.82rem; color: #79c0ff;">Validación de Incidencia Real</span>
-                  <span style="font-size: 0.65rem; background: rgba(56, 139, 253, 0.15); color: #79c0ff; padding: 2px 6px; border-radius: 4px; font-weight:600;">
+                  <span style="font-weight: 700; font-size: 0.82rem; color: ${isDeficit ? '#ff7b72' : '#79c0ff'};">Validación de Incidencia Real</span>
+                  <span style="font-size: 0.65rem; background: ${isDeficit ? 'rgba(248,81,73,0.2)' : 'rgba(56, 139, 253, 0.15)'}; color: ${isDeficit ? '#ff7b72' : '#79c0ff'}; padding: 2px 6px; border-radius: 4px; font-weight:600;">
                     ${p.name.split('(')[0].trim()}
                   </span>
                 </div>
 
                 <!-- HERO: INCIDENCIA REAL VS OBJETIVO -->
-                <div style="background: ${isWithinLimit ? 'rgba(35, 134, 54, 0.12)' : 'rgba(210, 153, 34, 0.12)'}; border: 1px solid ${isWithinLimit ? '#238636' : '#d29922'}; border-radius: 8px; padding: 10px 12px; text-align: center;">
-                  <div style="font-size: 0.66rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600;">
-                    Costo del premio sobre ventas requeridas
-                  </div>
-                  <div style="font-size: 1.65rem; font-weight: 800; color: ${isWithinLimit ? '#56d364' : '#f59e0b'}; margin: 2px 0;">
-                    ${pctCostoReal}%
-                  </div>
-                  <div style="font-size: 0.74rem; font-weight: 700; color: ${isWithinLimit ? '#56d364' : '#f59e0b'};">
-                    ${isWithinLimit 
-                      ? `✓ Dentro de tu objetivo seguro (${crec}%)` 
-                      : `⚠️ Supera el costo objetivo (${crec}%)`}
-                  </div>
-                  <div style="font-size: 0.65rem; color: var(--text-muted); margin-top: 3px;">
-                    ${isWithinLimit 
-                      ? `Este premio te cuesta ${pctCostoReal}% de las ventas acumuladas necesarias. Margen de seguridad: +${holgura}%.`
-                      : `Conviene calibrar puntos para no superar tu techo de retorno.`}
-                  </div>
-                </div>
+                ${heroHtml}
 
                 <!-- DESGLOSE UNITARIO -->
                 <div style="background: #0d0f15; border: 1px solid #1c2230; border-radius: 6px; padding: 9px 11px; display: flex; flex-direction: column; gap: 6px; font-size: 0.73rem;">
@@ -1210,15 +1380,15 @@
 
                   <div style="display: flex; justify-content: space-between; align-items: center;">
                     <span style="color: var(--text-muted);">• Valor de canje de este premio:</span>
-                    <b style="color: #fff; font-size: 0.82rem;">$${valorPuntoPremio} / pt</b>
+                    <b style="color: ${isDeficit ? '#ff7b72' : '#fff'}; font-size: 0.82rem;">$${valorPuntoPremio} / pt</b>
                   </div>
                   <div style="color: var(--text-muted); font-size: 0.65rem; padding-left: 8px; margin-top: -3px;">
                     (Límite máximo seguro fijado: $${valorPuntoMax} / pt)
                   </div>
                 </div>
 
-                <div style="font-size: 0.68rem; color: var(--text-muted); line-height: 1.35; padding: 0 2px;">
-                  💡 <b>Validación técnica:</b> Para llevarse un beneficio de <b>$${costoRealPremio.toLocaleString('es-AR')}</b>, el cliente debe dejar previamente en caja <b>$${gastoAcumulado.toLocaleString('es-AR')}</b>. El programa no compromete margen imprevisto.
+                <div style="font-size: 0.68rem; color: ${isDeficit ? '#ff7b72' : 'var(--text-muted)'}; line-height: 1.35; padding: 0 2px;">
+                  ${footerNote}
                 </div>
               </div>
 
@@ -1231,7 +1401,7 @@
                   <span style="font-size: 0.65rem; color: #8696a0;">Canal WhatsApp</span>
                 </div>
 
-                <div style="background: #202c33; border-radius: 8px; padding: 10px 12px; font-size: 0.77rem; line-height: 1.4; border-left: 3px solid #56d364;">
+                <div style="background: #202c33; border-radius: 8px; padding: 10px 12px; font-size: 0.77rem; line-height: 1.4; border-left: 3px solid ${isDeficit ? '#ff7b72' : '#56d364'};">
                   ¡Hola María! Ya sos parte del <b>Club Sushi</b> 🍣.<br>
                   Sumás 1 punto cada <b>$1.000</b>.<br>
                   Tu meta para <b>${p.name}</b> es de <b>${p.points} Puntos</b>.
