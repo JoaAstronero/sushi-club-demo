@@ -1382,7 +1382,7 @@
       const gastoReg = currentPts * 1000;
       const pct1er = gasto1er > 0 ? (costoReal / gasto1er) * 100 : 0;
       const pctReg = gastoReg > 0 ? (costoReal / gastoReg) * 100 : 0;
-      const visitas = Math.ceil(gasto1er / 10000);
+      const vPuntoItem = currentPts > 0 ? (costoReal / currentPts).toFixed(1) : "0.0";
 
       const isDeficit = pct1er > (cmax + 0.05);
       const isWarning = (!isDeficit) && (pct1er > (crec + 0.05));
@@ -1392,7 +1392,7 @@
       let trafficBg = 'rgba(35, 134, 54, 0.14)';
       let trafficBorder = '#238636';
       let trafficTitle = '✓ DENTRO DEL OBJETIVO SEGURO';
-      let trafficExplanation = `<b>Bono de 20 pts absorbido:</b> En el 1er canje el costo es de <b>${pct1er.toFixed(1)}%</b> ($\le$ objetivo ${crec}%). En canjes siguientes se reduce a <b>${pctReg.toFixed(1)}%</b>.`;
+      let trafficExplanation = `<b>Bono de 20 pts absorbido:</b> En el 1er canje el costo es de <b>${pct1er.toFixed(1)}%</b> (≤ objetivo ${crec}%). En canjes siguientes se reduce a <b>${pctReg.toFixed(1)}%</b>.`;
 
       if (isDeficit) {
         statusColor = '#ff7b72';
@@ -1441,8 +1441,8 @@
       const mPctReg = document.getElementById('pg-metric-pctreg');
       if (mPctReg) mPctReg.innerText = `${pctReg.toFixed(1)}%`;
 
-      const mVisitas = document.getElementById('pg-metric-visitas');
-      if (mVisitas) mVisitas.innerText = `~${visitas} visitas`;
+      const mVpunto = document.getElementById('pg-metric-vpunto');
+      if (mVpunto) mVpunto.innerText = `$${vPuntoItem} / pt`;
 
       const saveBtn = document.getElementById('pg-save-btn');
       if (saveBtn) {
@@ -1590,8 +1590,11 @@
                 <b id="pg-metric-pctreg" style="color: #56d364;">0.0%</b>
               </div>
               <div style="display: flex; justify-content: space-between;">
-                <span>• Visitas estimadas requeridas (~$10.000/visita):</span>
-                <b id="pg-metric-visitas" style="color: #79c0ff;">~0 visitas</b>
+                <span>• Rendimiento por punto:</span>
+                <div>
+                  <b id="pg-metric-vpunto" style="color: #79c0ff;">$0 / pt</b>
+                  <span style="font-size: 0.62rem; color: var(--text-muted); margin-left: 2px;">(techo: $${vpVal}/pt)</span>
+                </div>
               </div>
             </div>
           </div>
@@ -1790,7 +1793,6 @@
         const safePointsFloor = ptsPagadosFloor + bonoBienvenida;
         const valorPuntoPremio = pts > 0 ? (costoRealPremio / pts).toFixed(1) : "0.0";
         const valorPuntoMax = Math.round(stateB.config.vPuntoMax);
-        const visitas1erCanje = Math.ceil(gasto1erCanje / 10000);
 
         let heroHtml = '';
         if (isDeficit) {
