@@ -546,7 +546,7 @@
   <div class="top-bar">
     <h1 id="top-title">SUSHI CLUB · SISTEMA DE PUNTOS</h1>
     <div style="font-size: 0.72rem; color: var(--text-muted);" id="top-sub">
-      Beneficios en % auto-indexados a inflación + Caja en segundos
+      Modelado prudente de beneficios + Operación ágil en caja
     </div>
   </div>
 
@@ -667,7 +667,7 @@
         startStoryA(1);
       } else {
         document.getElementById('top-title').innerText = "SUSHI CLUB · SISTEMA DE PUNTOS";
-        document.getElementById('top-sub').innerText = "Beneficios en % auto-indexados a inflación + Caja en segundos";
+        document.getElementById('top-sub').innerText = "Modelado prudente de beneficios + Operación ágil en caja";
         startStoryB(activeStoryB);
       }
     }
@@ -683,7 +683,7 @@
 
         stateB.chatHistory = [{
           type: "recv",
-          text: `¡Hola María! Ya sos parte del Club Sushi.<br>Tu saldo inicial incluye un <b>Bono de Bienvenida de 20 Puntos</b> 🎁.<br>Sumás 1 punto cada <b>$${stateB.config.ratioSpend.toLocaleString('es-AR')}</b> gastados.<br>Tenés beneficios de hasta <b>50% OFF</b> listos para canjear.`,
+          text: `¡Hola María! Ya sos parte del Club Sushi.<br>Tu saldo inicial incluye un <b>Bono de Bienvenida de 20 Puntos</b> 🎁.<br>Sumás 1 punto cada <b>$${stateB.config.ratioSpend.toLocaleString('es-AR')}</b> gastados.<br>Podés acumular puntos para alcanzar hasta un <b>50% OFF</b> en tus platos favoritos.`,
           points: 20,
           time: "19:00"
         }];
@@ -748,56 +748,56 @@
 
         el.innerHTML = `
           <div class="card">
-            <div style="font-weight: 700; font-size: 0.92rem;">Configurá tu Programa en 2 minutos</div>
+            <div style="font-weight: 700; font-size: 0.92rem;">Estimá los parámetros de tu Programa</div>
             <p style="font-size: 0.73rem; color: var(--text-muted);">
-              Te decimos cuánto podés regalar protegiendo tu margen e incentivando visitas reales.
+              Calculá un rango de beneficios prudente para cuidar tu margen operativo según tu rotación estimada.
             </p>
 
             <div>
-              <label style="font-size: 0.72rem; color: var(--text-muted); font-weight: 600;">Rubro de tu Negocio:</label>
+              <label style="font-size: 0.72rem; color: var(--text-muted); font-weight: 600;">Rubro de Referencia:</label>
               <select class="input-field" id="cfg-rubro" onchange="updateSetupMath()">
                 <option value="0.08" selected>Gastronomía (Restaurante, Sushi, Café)</option>
-                <option value="0.12">Servicios (Barbería, Estética, Lavadero)</option>
-                <option value="0.05">Comercio / Tienda de Ropa</option>
+                <option value="0.12">Servicios recurrentes (Barbería, Estética, Lavadero)</option>
+                <option value="0.05">Comercio / Tienda de Ropa / Retail</option>
               </select>
               <div style="font-size: 0.68rem; color: #79c0ff; margin-top: 3px;" id="txt-rubro-impact">
-                ℹ️ Los negocios gastronómicos logran un <b>8% más de visitas repetidas</b> con puntos.
+                ℹ️ Estimación de referencia: comercios gastronómicos suelen proyectar <b>entre un 6% y 8% de visitas adicionales</b>.
               </div>
             </div>
 
             <div>
               <div style="display: flex; justify-content: space-between; align-items: center;">
-                <label style="font-size: 0.72rem; color: var(--text-muted); font-weight: 600;">Margen de Ganancia Estimado (%):</label>
-                <span style="font-size: 0.68rem; color: var(--text-muted);">Sugerido: 65%</span>
+                <label style="font-size: 0.72rem; color: var(--text-muted); font-weight: 600;">Margen Bruto Estimado (%):</label>
+                <span style="font-size: 0.68rem; color: var(--text-muted);">Referencia sugerida: ~65%</span>
               </div>
               <input type="number" class="input-field" id="cfg-margin-input" value="${cfg.marginPercent}" oninput="updateSetupMath()">
               <div style="font-size: 0.67rem; color: var(--text-muted); margin-top: 2px;">
-                *Si tus platos varían mucho, poné el margen del que menos te conviene regalar (el más bajo).
+                *Para mayor cautela, podés ingresar el margen del producto de carta con menor rendimiento.
               </div>
             </div>
 
             <div>
               <div style="display: flex; justify-content: space-between; font-size: 0.72rem;">
-                <span style="color: var(--text-muted); font-weight: 600;">Estrategia de Beneficio:</span>
-                <span style="font-weight: 700; color: #56d364;" id="label-slider-mode">Equilibrada (3.4% retorno)</span>
+                <span style="color: var(--text-muted); font-weight: 600;">Perfil de Beneficio:</span>
+                <span style="font-weight: 700; color: #56d364;" id="label-slider-mode">Equilibrado (~3.4% costo sobre ventas)</span>
               </div>
               <input type="range" class="slider-range" id="cfg-slider" min="50" max="100" value="70" step="10" oninput="updateSetupMath()">
               <div style="font-size: 0.66rem; color: var(--text-muted); line-height: 1.25;" id="txt-slider-explanation">
-                <b>Equilibrada:</b> Dejás un colchón de seguridad por si el programa rinde menos de lo proyectado.
+                <b>Equilibrado:</b> Busca un balance intermedio, reservando margen por si la respuesta del cliente es menor a la estimada.
               </div>
             </div>
 
             <div class="alert-box info" style="padding: 6px 10px; font-size: 0.7rem; line-height: 1.35;">
-              <b>Blindaje Actuarial:</b> Techo seguro: <b id="txt-cmax">4.8%</b> · Retorno: <b id="txt-crec" style="color: #56d364;">3.4%</b> · Redondeo seguro a múltiplos de 10.
+              <b>Estimación técnica:</b> Techo teórico prudente: <b id="txt-cmax">4.8%</b> · Costo objetivo: <b id="txt-crec" style="color: #56d364;">3.4%</b> (redondeo preventivo a múltiplos de 10).
             </div>
 
             <div>
               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
-                <label style="font-size: 0.72rem; color: var(--text-muted); font-weight: 600;">Catálogo de Premios Configurable:</label>
-                <span style="font-size: 0.68rem; color: #56d364;">Regla: $1.000 = 1 pt</span>
+                <label style="font-size: 0.72rem; color: var(--text-muted); font-weight: 600;">Catálogo de Beneficios Configurable:</label>
+                <span style="font-size: 0.68rem; color: #56d364;">Regla base: $1.000 = 1 pt</span>
               </div>
               <div style="font-size: 0.66rem; color: #79c0ff; margin-bottom: 4px;">
-                👆 Tocá un premio para ver su balance de ganancias a la derecha. Podés ajustar su precio ($).
+                👆 Seleccioná un beneficio para ver el escenario estimado de compras previas vs. costo del premio.
               </div>
               <div class="prize-list" id="prize-list-container">
                 ${prizeRowsHtml}
@@ -838,12 +838,12 @@
             </div>
 
             <div class="metric-box">
-              <span style="font-size: 0.78rem; color: var(--text-muted);">Puntos a generar automáticamente:</span>
+              <span style="font-size: 0.78rem; color: var(--text-muted);">Puntos calculados:</span>
               <span style="font-size: 1.25rem; font-weight: 800; color: #56d364;" id="calc-pts">+15 pts</span>
             </div>
 
             <button class="btn btn-action" onclick="confirmarPuntosB()">
-              [ ACREDITAR PUNTOS EN SEGUNDOS ]
+              [ REGISTRAR Y ACREDITAR PUNTOS ]
             </button>
             <button class="btn btn-outline" onclick="startStoryB(1)">← Volver a Modificar Configuración</button>
           </div>
@@ -887,7 +887,7 @@
             ${optionsHtml}
 
             <div class="alert-box info" style="margin-top: 6px; font-size: 0.7rem;">
-              💡 <b>Canje de Alto Impacto:</b> Al canjear, el cliente no vuelve a cero pelado; el sistema le acredita automáticamente +20 puntos de bienvenida para garantizar su próxima visita.
+              💡 <b>Efecto reinicio incentivado:</b> Al canjear, el cliente no queda en cero; se le acreditan puntos base (+20 pts) para reducir la fricción psicológica de volver a empezar.
             </div>
 
             <button class="btn btn-outline" style="margin-top: 6px;" onclick="startStoryB(2)">Volver a Cobro de Caja</button>
@@ -930,9 +930,9 @@
       const m = (Number(document.getElementById('cfg-margin-input').value) || 65) / 100;
       const sliderVal = Number(document.getElementById('cfg-slider').value);
 
-      let rubroTxt = "Los negocios gastronómicos logran un <b>8% más de visitas repetidas</b> con puntos.";
-      if (dq === 0.12) rubroTxt = "Los servicios recurrentes (barberías, lavaderos) logran hasta un <b>12% más de recurrencia</b>.";
-      else if (dq === 0.05) rubroTxt = "Las tiendas de indumentaria y retail logran un <b>5% de incremento de recompra</b>.";
+      let rubroTxt = "Estimación de referencia: comercios gastronómicos suelen proyectar <b>entre un 6% y 8% de visitas adicionales</b>.";
+      if (dq === 0.12) rubroTxt = "Servicios de alta rotación (barberías, lavados): referencias de <b>hasta un 10% a 12%</b> de mayor recurrencia.";
+      else if (dq === 0.05) rubroTxt = "Retail / indumentaria: referencias conservadoras de <b>alrededor del 4% a 5%</b> de recompra.";
       document.getElementById('txt-rubro-impact').innerHTML = `ℹ️ ${rubroTxt}`;
 
       const cmax = (m * dq) / (1 + dq);
@@ -945,16 +945,16 @@
       document.getElementById('txt-cmax').innerText = `${stateB.config.maxSafePercent}%`;
       document.getElementById('txt-crec').innerText = `${stateB.config.recommendedPercent}%`;
 
-      let modeTxt = "Equilibrada";
-      let expTxt = "<b>Equilibrada:</b> Dejás un colchón de seguridad por si el programa rinde menos de lo proyectado.";
+      let modeTxt = "Equilibrado";
+      let expTxt = "<b>Equilibrado:</b> Busca un balance intermedio, reservando margen por si la respuesta del cliente es menor a la estimada.";
       if (sliderVal <= 50) {
-        modeTxt = "Conservadora";
-        expTxt = "<b>Conservadora:</b> Te guardás el máximo margen de seguridad por si el cliente no vuelve tan seguido.";
+        modeTxt = "Conservador";
+        expTxt = "<b>Conservador:</b> Asigna un costo menor en beneficios (desde ~2.4%), priorizando máxima prudencia de caja.";
       } else if (sliderVal >= 90) {
-        modeTxt = "Generosa";
-        expTxt = "<b>Generosa:</b> Confiás en la proyección y usás casi todo el margen seguro que tu local permite.";
+        modeTxt = "Flexible";
+        expTxt = "<b>Flexible:</b> Asigna hasta el límite del retorno sugerido (~4.8%), para incentivos de mayor tracción inicial.";
       }
-      document.getElementById('label-slider-mode').innerText = `${modeTxt} (${stateB.config.recommendedPercent}% retorno)`;
+      document.getElementById('label-slider-mode').innerText = `${modeTxt} (~${stateB.config.recommendedPercent}% costo)`;
       document.getElementById('txt-slider-explanation').innerHTML = expTxt;
 
       stateB.config.ratioSpend = 1000;
@@ -1055,7 +1055,7 @@
 
         stateB.chatHistory.push({
           type: "recv",
-          text: `🎉 <b>¡Sumaste ${pts} Puntos!</b><br>Por tu compra de $${spend.toLocaleString('es-AR')}.<br>Tu saldo actualizado es de <b>${stateB.client.points} Puntos</b>.<br>Podés canjearlos por tu 50% OFF en la próxima visita.`,
+          text: `🎉 <b>¡Sumaste ${pts} Puntos!</b><br>Por tu compra de $${spend.toLocaleString('es-AR')}.<br>Tu saldo acumulado es de <b>${stateB.client.points} Puntos</b>.<br>Estás más cerca de tu beneficio de 50% OFF.`,
           points: stateB.client.points,
           time: "20:30"
         });
@@ -1078,7 +1078,7 @@
 
         stateB.chatHistory.push({
           type: "recv",
-          text: `🍣 <b>¡Descuento aplicado en tu factura!</b><br>Canjeaste <b>${prize.name}</b> (-${prize.points} pts).<br><br>🎁 <b>Bono de fidelidad:</b> Te regalamos <b>+20 Puntos</b> de arranque para que no empieces de cero.<br>Tu nuevo saldo para el próximo canje es de <b>${stateB.client.points} Puntos</b>.`,
+          text: `🍣 <b>¡Descuento aplicado en tu factura!</b><br>Canjeaste <b>${prize.name}</b> (-${prize.points} pts).<br><br>🎁 <b>Bono inicial:</b> Se te acreditan <b>+20 Puntos</b> base para tu próximo objetivo.<br>Tu nuevo saldo disponible es de <b>${stateB.client.points} Puntos</b>.`,
           points: stateB.client.points,
           time: "20:35"
         });
@@ -1095,15 +1095,15 @@
 
       // VISTA ESPECIAL PASO 1: IMPACTO FINANCIERO LIMPIO (SIN CHROME DE WHATSAPP)
       if (stateB.viewMode === "ONBOARDING_SETUP") {
-        if (colTitle) colTitle.innerText = "Simulador de ROI · Paso 1";
-        if (colRole) colRole.innerText = "Impacto en Margen";
+        if (colTitle) colTitle.innerText = "Simulador de Escenario · Paso 1";
+        if (colRole) colRole.innerText = "Estimación Unitaria";
 
         if (headerEl) {
           headerEl.innerHTML = `
             <div class="caja-top">
-              <span style="font-weight: 700; font-size: 0.8rem; color: #fff;">PROYECCIÓN DE RENTABILIDAD</span>
+              <span style="font-weight: 700; font-size: 0.8rem; color: #fff;">ESCENARIO TEÓRICO UNITARIO</span>
               <span class="status-tag" style="color: #79c0ff; font-weight: 600;">
-                <span class="dot-active" style="background:#79c0ff;"></span>Simulación por Cliente
+                <span class="dot-active" style="background:#79c0ff;"></span>Proyección Estimada
               </span>
             </div>
           `;
@@ -1122,10 +1122,10 @@
         let aclaracionCosto = "";
         if (p.type === 'FIXED') {
           costoRealPremio = Math.round(p.retailPrice * (1 - (m / 100)));
-          aclaracionCosto = `Costo real de materia prima (CMV ${100 - m}%) para tu cocina de un plato de carta $${p.retailPrice.toLocaleString('es-AR')}.`;
+          aclaracionCosto = `Costo directo de reposición/materia prima (CMV ~${100 - m}%) para un producto carta $${p.retailPrice.toLocaleString('es-AR')}.`;
         } else {
           costoRealPremio = p.worstCaseCost;
-          aclaracionCosto = `Tope máximo de descuento directo aplicado en la cuenta.`;
+          aclaracionCosto = `Tope estimado de descuento directo aplicado en la cuenta.`;
         }
 
         const gananciaLimpia = gananciaBrutaPrevia - costoRealPremio;
@@ -1138,32 +1138,32 @@
               <!-- TARJETA RADIOGRAFÍA FINANCIERA -->
               <div class="card">
                 <div style="display: flex; justify-content: space-between; align-items: center;">
-                  <span style="font-weight: 700; font-size: 0.82rem; color: #79c0ff;">Balance Económico del Premio</span>
+                  <span style="font-weight: 700; font-size: 0.82rem; color: #79c0ff;">Balance Estimado por Ciclo de Canje</span>
                   <span style="font-size: 0.65rem; background: rgba(56, 139, 253, 0.15); color: #79c0ff; padding: 2px 6px; border-radius: 4px; font-weight:600;">
                     ${p.name.split('(')[0].trim()}
                   </span>
                 </div>
 
                 <div style="font-size: 0.71rem; color: var(--text-muted); line-height: 1.35;">
-                  Para canjear este premio, el cliente necesita juntar <b>${pts} Puntos</b>. Mirá lo que entra y sale de tu caja:
+                  Para alcanzar <b>${pts} Puntos</b>, este cliente acumularía consumos aproximados por:
                 </div>
 
                 <div style="background: #0d0f15; border: 1px solid #1c2230; border-radius: 6px; padding: 9px 11px; display: flex; flex-direction: column; gap: 6px; font-size: 0.73rem;">
                   <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <span style="color: var(--text);">• Ventas que te pagó el cliente:</span>
-                    <b style="color: #79c0ff; font-size: 0.84rem;">$${gastoAcumulado.toLocaleString('es-AR')}</b>
+                    <span style="color: var(--text);">• Ventas acumuladas requeridas:</span>
+                    <b style="color: #79c0ff; font-size: 0.84rem;">~$${gastoAcumulado.toLocaleString('es-AR')}</b>
                   </div>
                   <div style="color: var(--text-muted); font-size: 0.66rem; padding-left: 8px; margin-top: -3px;">
-                    (~${visitasPromedio} visitas acumuladas con regla $1.000 = 1 pt)
+                    (~${visitasPromedio} visitas promedio estimadas con regla $1.000 = 1 pt)
                   </div>
 
                   <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 2px;">
-                    <span style="color: var(--text);">• Ganancia previa recaudada (${m}% margen):</span>
+                    <span style="color: var(--text);">• Contribución marginal previa (${m}% margen):</span>
                     <b style="color: #56d364; font-size: 0.84rem;">+$${gananciaBrutaPrevia.toLocaleString('es-AR')}</b>
                   </div>
 
                   <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <span style="color: #ff7b72;">• Costo real del premio para el local:</span>
+                    <span style="color: #ff7b72;">• Costo directo estimado del premio:</span>
                     <b style="color: #ff7b72; font-size: 0.84rem;">-$${costoRealPremio.toLocaleString('es-AR')}</b>
                   </div>
                   <div style="color: var(--text-muted); font-size: 0.65rem; padding-left: 8px; margin-top: -3px;">
@@ -1173,11 +1173,11 @@
                   <div style="height: 1px; background: #232838; margin: 3px 0;"></div>
 
                   <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <span style="font-weight: 700; color: #fff;">GANANCIA LIMPIA RETENIDA:</span>
+                    <span style="font-weight: 700; color: #fff;">MARGEN BRUTO REMANENTE ESTIMADO:</span>
                     <span style="font-size: 1.05rem; font-weight: 800; color: #56d364;">+$${gananciaLimpia.toLocaleString('es-AR')}</span>
                   </div>
                   <div style="font-size: 0.68rem; color: #56d364; text-align: right; font-weight: 600;">
-                    Costo real del premio: solo ${pctCostoReal}% de lo que el cliente te pagó
+                    *Incidencia estimada del premio: ~${pctCostoReal}% sobre las ventas previas requeridas
                   </div>
                 </div>
               </div>
