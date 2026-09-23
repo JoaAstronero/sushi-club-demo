@@ -237,6 +237,17 @@
       border-color: var(--accent);
     }
 
+    /* Ocultar flechas / spin-buttons por defecto de HTML en inputs numéricos */
+    input[type=number]::-webkit-inner-spin-button, 
+    input[type=number]::-webkit-outer-spin-button { 
+      -webkit-appearance: none; 
+      margin: 0; 
+    }
+    input[type=number] {
+      -moz-appearance: textfield;
+      appearance: textfield;
+    }
+
     .slider-range {
       width: 100%;
       margin: 6px 0;
@@ -1066,7 +1077,7 @@
       });
 
       const container = document.getElementById('prize-list-container');
-      if (container) {
+      if (container && rebuildList !== false) {
         container.innerHTML = renderPrizeRowsHtml();
       }
 
@@ -1101,7 +1112,7 @@
         }
 
         rowsHtml += `
-          <div class="prize-row" onclick="selectPrizeForInspection(${idx})" style="cursor:pointer; border: 1px solid ${borderCol}; background: ${bgCol}; margin-bottom: 4px; padding: 6px 9px; border-radius: 6px; transition: all 0.15s ease;">
+          <div class="prize-row" id="prize-row-${idx}" onclick="selectPrizeForInspection(${idx})" style="cursor:pointer; border: 1px solid ${borderCol}; background: ${bgCol}; margin-bottom: 4px; padding: 6px 9px; border-radius: 6px; transition: all 0.15s ease;">
             <div style="flex:1;">
               <div style="display:flex; align-items:center; gap:5px; flex-wrap:wrap;">
                 <b style="color: ${isSelected ? '#fff' : '#c9d1d9'}; font-size: 0.76rem;">${p.name}</b>
@@ -1127,7 +1138,7 @@
               </div>
             </div>
             <div style="text-align:right; display:flex; flex-direction:column; align-items:flex-end; gap:3px;">
-              <span class="prize-badge" style="font-size:0.7rem; padding:2px 5px; background:${isDeficitItem ? 'rgba(248,81,73,0.2)' : (isWarnItem ? 'rgba(245,158,11,0.2)' : '#1c2230')}; color:${isDeficitItem ? '#ff7b72' : (isWarnItem ? '#f59e0b' : '#56d364')};">${p.points} PTS</span>
+              <span id="prize-badge-${idx}" class="prize-badge" style="font-size:0.7rem; padding:2px 5px; background:${isDeficitItem ? 'rgba(248,81,73,0.2)' : (isWarnItem ? 'rgba(245,158,11,0.2)' : '#1c2230')}; color:${isDeficitItem ? '#ff7b72' : (isWarnItem ? '#f59e0b' : '#56d364')};">${p.points} PTS</span>
               <div style="display:flex; align-items:center; gap:6px;">
                 <span style="font-size:0.6rem; color:${isDeficitItem ? '#ff7b72' : (isSelected ? '#79c0ff' : 'var(--text-muted)')}; font-weight:600;">
                   ${isSelected ? (isDeficitItem ? '● En Déficit' : '● Validando') : 'Tocá para validar'}
@@ -1143,7 +1154,7 @@
 
     function selectPrizeForInspection(idx) {
       stateB.config.activePrizeIndex = idx;
-      updateSetupMath();
+      updateSetupMath(true);
     }
 
     function updatePrizePointsManual(idx, newPts) {
@@ -1151,13 +1162,14 @@
       if (val < 10) return;
       stateB.config.prizes[idx].points = val;
       stateB.config.prizes[idx].isCustomPoints = true;
-      updateSetupMath();
+      updateSetupMath(false); // NO destruye el input mientras el usuario escribe
+      updatePrizeRowVisualStatus(idx);
     }
 
     function resetPrizePointsSafe(idx, safePts) {
       stateB.config.prizes[idx].points = safePts;
       stateB.config.prizes[idx].isCustomPoints = false;
-      updateSetupMath();
+      updateSetupMath(true);
     }
 
     function updatePrizePrice(idx, newPrice) {
@@ -1170,7 +1182,29 @@
       } else {
         stateB.config.prizes[idx].worstCaseCost = Math.round(val * (1 - (m / 100)));
       }
-      updateSetupMath();
+      updateSetupMath(false); // NO destruye el input mientras el usuario escribe
+      updatePrizeRowVisualStatus(idx);
+    }
+
+    function updatePrizeRowVisualStatus(idx) {
+      const p = stateB.config.prizes[idx];
+      if (!p) return;
+      const m = (Number(document.getElementById('cfg-margin-input') ? document.getElementById('cfg-margin-input').value : stateB.config.marginPercent) || 65);
+      const isPercent = (p.type === 'PERCENT_CAP');
+      const costoItem = isPercent ? p.worstCaseCost : Math.round(p.retailPrice * (1 - (m / 100)));
+      const gastoItem = p.points * stateB.config.ratioSpend;
+      const pctItem = gastoItem > 0 ? (costoItem / gastoItem) * 100 : 0;
+      const cmaxPct = Number(stateB.config.maxSafePercent);
+      const crecPct = Number(stateB.config.recommendedPercent);
+      const isDeficit = pctItem > (cmaxPct + 0.05);
+      const isWarn = (!isDeficit) && (pctItem > crecPct + 0.05);
+
+      const badge = document.getElementById(`prize-badge-${idx}`);
+      if (badge) {
+        badge.innerText = `${p.points} PTS`;
+        badge.style.background = isDeficit ? 'rgba(248,81,73,0.2)' : (isWarn ? 'rgba(245,158,11,0.2)' : '#1c2230');
+        badge.style.color = isDeficit ? '#ff7b72' : (isWarn ? '#f59e0b' : '#56d364');
+      }
     }
 
     function deletePrize(idx) {
@@ -1179,11 +1213,11 @@
       if (stateB.config.activePrizeIndex >= stateB.config.prizes.length) {
         stateB.config.activePrizeIndex = 0;
       }
-      updateSetupMath();
+      updateSetupMath(true);
     }
 
     // ==========================================
-    // PLAYGROUND MODAL PARA NUEVOS BENEFICIOS
+    // PLAYGROUND MODAL PARA NUEVOS BENEFICIOS (DOM PERSISTENTE SIN RE-CREAR INPUTS)
     // ==========================================
     const playgroundState = {
       type: 'FIXED', // 'FIXED' | 'PERCENT_CAP'
@@ -1204,50 +1238,83 @@
       }
       const modal = document.getElementById('prize-playground-modal');
       if (modal) {
+        buildPlaygroundModalDOM();
         modal.style.display = 'flex';
-        renderPlaygroundModal();
+        updatePlaygroundLive(true);
       }
     }
 
     function closePrizePlaygroundModal() {
       const modal = document.getElementById('prize-playground-modal');
-      if (modal) {
-        modal.style.display = 'none';
-      }
+      if (modal) modal.style.display = 'none';
     }
 
-    function setPlaygroundType(type) {
+    function togglePlaygroundType(type) {
       playgroundState.type = type;
       playgroundState.customPoints = null;
-      if (type === 'FIXED' && (!playgroundState.name || playgroundState.name.includes('OFF'))) {
-        playgroundState.name = 'Gyozas de Salmón (6u)';
-      } else if (type === 'PERCENT_CAP' && (!playgroundState.name || !playgroundState.name.includes('OFF'))) {
-        playgroundState.name = `${playgroundState.discountPercent}% OFF en Factura`;
-      }
-      renderPlaygroundModal();
-    }
+      const isFixed = (type === 'FIXED');
 
-    function updatePlaygroundField(field, val) {
-      playgroundState[field] = val;
-      if (field === 'discountPercent' && playgroundState.type === 'PERCENT_CAP') {
-        if (!playgroundState.name || playgroundState.name.includes('OFF')) {
-          playgroundState.name = `${val}% OFF en Factura`;
+      const tabFixed = document.getElementById('pg-tab-fixed');
+      const tabPercent = document.getElementById('pg-tab-percent');
+      if (tabFixed) tabFixed.classList.toggle('active', isFixed);
+      if (tabPercent) tabPercent.classList.toggle('active', !isFixed);
+
+      const fFixed = document.getElementById('pg-fields-fixed');
+      const fPercent = document.getElementById('pg-fields-percent');
+      if (fFixed) fFixed.style.display = isFixed ? 'block' : 'none';
+      if (fPercent) fPercent.style.display = isFixed ? 'none' : 'block';
+
+      const nameInput = document.getElementById('pg-input-name');
+      if (nameInput) {
+        if (isFixed && (!nameInput.value || nameInput.value.includes('OFF'))) {
+          nameInput.value = 'Gyozas de Salmón (6u)';
+          playgroundState.name = nameInput.value;
+        } else if (!isFixed && (!nameInput.value || !nameInput.value.includes('OFF'))) {
+          const disc = document.getElementById('pg-input-disc-pct') ? document.getElementById('pg-input-disc-pct').value : 25;
+          nameInput.value = `${disc}% OFF en Factura`;
+          playgroundState.name = nameInput.value;
         }
       }
-      renderPlaygroundModal();
+
+      updatePlaygroundLive(true);
     }
 
-    function updatePlaygroundPoints(pts) {
-      const val = Number(pts);
-      if (val >= 10) {
-        playgroundState.customPoints = val;
-        renderPlaygroundModal();
+    function handlePlaygroundSlider(val) {
+      const num = Number(val);
+      playgroundState.customPoints = num;
+      const ptsInput = document.getElementById('pg-pts-input');
+      if (ptsInput) ptsInput.value = num;
+      updatePlaygroundLive(false);
+    }
+
+    function handlePlaygroundPointsInput(val) {
+      const num = Number(val);
+      if (num >= 10) {
+        playgroundState.customPoints = num;
+        const slider = document.getElementById('pg-pts-slider');
+        if (slider) slider.value = num;
+        updatePlaygroundLive(false);
       }
     }
 
-    function setPlaygroundPointsDefault(sugPts) {
-      playgroundState.customPoints = sugPts;
-      renderPlaygroundModal();
+    function handlePlaygroundCostChange() {
+      if (playgroundState.type === 'FIXED') {
+        const pvpEl = document.getElementById('pg-input-retail');
+        const mEl = document.getElementById('pg-input-margin');
+        if (pvpEl) playgroundState.retailPrice = Number(pvpEl.value) || 0;
+        if (mEl) playgroundState.marginPercent = Number(mEl.value) || 0;
+      } else {
+        const discEl = document.getElementById('pg-input-disc-pct');
+        const maxEl = document.getElementById('pg-input-ticket-max');
+        if (discEl) playgroundState.discountPercent = Number(discEl.value) || 0;
+        if (maxEl) playgroundState.ticketMax = Number(maxEl.value) || 0;
+      }
+      updatePlaygroundLive(true);
+    }
+
+    function setPlaygroundPointsDefault() {
+      playgroundState.customPoints = null;
+      updatePlaygroundLive(true);
     }
 
     function calculatePlaygroundSuggestedPoints(costo) {
@@ -1257,52 +1324,7 @@
       return ptsPagados + 20; // Absorbe bono inicial de bienvenida
     }
 
-    function savePlaygroundPrizeToCatalog() {
-      const name = (playgroundState.name || '').trim();
-      if (!name) {
-        alert("Por favor escribí el nombre del producto o beneficio.");
-        return;
-      }
-
-      const mGlobal = (Number(document.getElementById('cfg-margin-input') ? document.getElementById('cfg-margin-input').value : stateB.config.marginPercent) || 65);
-      const isPercent = (playgroundState.type === 'PERCENT_CAP');
-      
-      let retailPrice = 0;
-      let worstCaseCost = 0;
-      if (!isPercent) {
-        retailPrice = Number(playgroundState.retailPrice) || 4500;
-        const itemMargin = Number(playgroundState.marginPercent) || mGlobal;
-        worstCaseCost = Math.round(retailPrice * (1 - (itemMargin / 100)));
-      } else {
-        const discPct = Number(playgroundState.discountPercent) || 25;
-        const ticketMax = Number(playgroundState.ticketMax) || 16000;
-        retailPrice = ticketMax;
-        worstCaseCost = Math.round(ticketMax * (discPct / 100));
-      }
-
-      const pts = playgroundState.customPoints !== null ? playgroundState.customPoints : calculatePlaygroundSuggestedPoints(worstCaseCost);
-
-      const newPrize = {
-        id: Date.now(),
-        name: name,
-        type: playgroundState.type,
-        retailPrice: retailPrice,
-        worstCaseCost: worstCaseCost,
-        points: pts,
-        isDefault: false,
-        isCustomPoints: true
-      };
-
-      stateB.config.prizes.push(newPrize);
-      stateB.config.activePrizeIndex = stateB.config.prizes.length - 1;
-      closePrizePlaygroundModal();
-      updateSetupMath();
-    }
-
-    function renderPlaygroundModal() {
-      const container = document.getElementById('playground-modal-content');
-      if (!container) return;
-
+    function updatePlaygroundLive(resetSliderToSug = false) {
       const mGlobal = (Number(document.getElementById('cfg-margin-input') ? document.getElementById('cfg-margin-input').value : stateB.config.marginPercent) || 65);
       const isPercent = (playgroundState.type === 'PERCENT_CAP');
       const crec = Number(stateB.config.recommendedPercent);
@@ -1311,55 +1333,50 @@
       const bonoBienvenida = 20;
 
       let costoReal = 0;
-      let typeSpecificFields = '';
-
       if (!isPercent) {
-        const itemM = Number(playgroundState.marginPercent) || mGlobal;
-        const pvp = Number(playgroundState.retailPrice) || 0;
+        const pvp = Number(document.getElementById('pg-input-retail') ? document.getElementById('pg-input-retail').value : playgroundState.retailPrice) || 0;
+        const itemM = Number(document.getElementById('pg-input-margin') ? document.getElementById('pg-input-margin').value : playgroundState.marginPercent) || mGlobal;
         costoReal = Math.round(pvp * (1 - (itemM / 100)));
-
-        typeSpecificFields = `
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-            <div>
-              <label style="font-size: 0.68rem; color: var(--text-muted);">Precio de carta ($):</label>
-              <input type="number" class="input-field" style="margin-top:2px;" value="${pvp}" oninput="updatePlaygroundField('retailPrice', Number(this.value))">
-            </div>
-            <div>
-              <label style="font-size: 0.68rem; color: var(--text-muted);">Margen del plato (%):</label>
-              <input type="number" class="input-field" style="margin-top:2px;" value="${itemM}" oninput="updatePlaygroundField('marginPercent', Number(this.value))">
-            </div>
-          </div>
-          <div style="font-size: 0.66rem; color: var(--text-muted); display: flex; justify-content: space-between; background: #0d0f15; padding: 5px 8px; border-radius: 4px;">
-            <span>Costo reposición cocina (CMV ~${100 - itemM}%):</span>
-            <b style="color: #ff7b72;">$${costoReal.toLocaleString('es-AR')}</b>
-          </div>
-        `;
+        const costDisp = document.getElementById('pg-cost-fixed-display');
+        if (costDisp) costDisp.innerText = `$${costoReal.toLocaleString('es-AR')}`;
       } else {
-        const disc = Number(playgroundState.discountPercent) || 25;
-        const maxTicket = Number(playgroundState.ticketMax) || 16000;
+        const disc = Number(document.getElementById('pg-input-disc-pct') ? document.getElementById('pg-input-disc-pct').value : playgroundState.discountPercent) || 25;
+        const maxTicket = Number(document.getElementById('pg-input-ticket-max') ? document.getElementById('pg-input-ticket-max').value : playgroundState.ticketMax) || 16000;
         costoReal = Math.round(maxTicket * (disc / 100));
-
-        typeSpecificFields = `
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-            <div>
-              <label style="font-size: 0.68rem; color: var(--text-muted);">% Descuento:</label>
-              <input type="number" class="input-field" style="margin-top:2px;" min="5" max="70" value="${disc}" oninput="updatePlaygroundField('discountPercent', Number(this.value))">
-            </div>
-            <div>
-              <label style="font-size: 0.68rem; color: var(--text-muted);">Ticket máx. aplicable ($):</label>
-              <input type="number" class="input-field" style="margin-top:2px;" value="${maxTicket}" oninput="updatePlaygroundField('ticketMax', Number(this.value))">
-            </div>
-          </div>
-          <div style="font-size: 0.66rem; color: var(--text-muted); display: flex; justify-content: space-between; background: #0d0f15; padding: 5px 8px; border-radius: 4px;">
-            <span>Tope máximo de descuento en factura:</span>
-            <b style="color: #ff7b72;">$${costoReal.toLocaleString('es-AR')}</b>
-          </div>
-        `;
+        const costDisp = document.getElementById('pg-cost-percent-display');
+        if (costDisp) costDisp.innerText = `$${costoReal.toLocaleString('es-AR')}`;
       }
 
-      // Puntos sugeridos y cálculos de incidencia
       const ptsSugeridos = calculatePlaygroundSuggestedPoints(costoReal);
-      const currentPts = playgroundState.customPoints !== null ? playgroundState.customPoints : ptsSugeridos;
+      
+      const minSlider = Math.max(20, Math.floor(ptsSugeridos * 0.4 / 10) * 10);
+      const maxSlider = Math.max(120, Math.ceil(ptsSugeridos * 1.8 / 10) * 10);
+
+      const slider = document.getElementById('pg-pts-slider');
+      const ptsInput = document.getElementById('pg-pts-input');
+
+      if (slider) {
+        slider.min = minSlider;
+        slider.max = maxSlider;
+      }
+
+      const minLbl = document.getElementById('pg-slider-min-lbl');
+      if (minLbl) minLbl.innerText = `Más accesible (${minSlider} pts)`;
+      const sugLbl = document.getElementById('pg-slider-sug-lbl');
+      if (sugLbl) sugLbl.innerText = `Sugerido (${ptsSugeridos} pts)`;
+      const maxLbl = document.getElementById('pg-slider-max-lbl');
+      if (maxLbl) maxLbl.innerText = `Ultra seguro (${maxSlider} pts)`;
+
+      if (resetSliderToSug && playgroundState.customPoints === null) {
+        if (ptsInput) ptsInput.value = ptsSugeridos;
+        if (slider) slider.value = ptsSugeridos;
+      }
+
+      const currentPts = Number(ptsInput ? ptsInput.value : ptsSugeridos) || ptsSugeridos;
+
+      const sugBtn = document.getElementById('pg-sug-btn');
+      if (sugBtn) sugBtn.innerText = `↺ Restablecer Puntos Sugeridos (${ptsSugeridos} PTS)`;
+
       const ptsPagados1er = Math.max(10, currentPts - bonoBienvenida);
       const gasto1er = ptsPagados1er * 1000;
       const gastoReg = currentPts * 1000;
@@ -1391,8 +1408,55 @@
         trafficExplanation = `Supera el objetivo deseado (${crec}%), pero no perfora el techo (${cmax}%). Reduce tu colchón de seguridad ante contingencias.`;
       }
 
-      const minSlider = Math.max(20, Math.floor(ptsSugeridos * 0.4 / 10) * 10);
-      const maxSlider = Math.max(120, Math.ceil(ptsSugeridos * 1.8 / 10) * 10);
+      if (ptsInput) ptsInput.style.color = statusColor;
+      const ptsBadge = document.getElementById('pg-pts-badge-txt');
+      if (ptsBadge) ptsBadge.style.color = statusColor;
+
+      const tBox = document.getElementById('pg-traffic-box');
+      if (tBox) {
+        tBox.style.background = trafficBg;
+        tBox.style.borderColor = trafficBorder;
+      }
+      const tTitle = document.getElementById('pg-traffic-title');
+      if (tTitle) {
+        tTitle.innerText = trafficTitle;
+        tTitle.style.color = statusColor;
+      }
+      const tPct = document.getElementById('pg-traffic-pct');
+      if (tPct) {
+        tPct.innerText = `${pct1er.toFixed(1)}%`;
+        tPct.style.color = statusColor;
+      }
+      const tExp = document.getElementById('pg-traffic-exp');
+      if (tExp) tExp.innerHTML = trafficExplanation;
+
+      const mGasto1er = document.getElementById('pg-metric-gasto1er');
+      if (mGasto1er) mGasto1er.innerText = `$${gasto1er.toLocaleString('es-AR')}`;
+      const mSubGasto = document.getElementById('pg-metric-gasto1er-sub');
+      if (mSubGasto) mSubGasto.innerText = `(${ptsPagados1er} pts pagados + 20 regalo)`;
+
+      const mCosto = document.getElementById('pg-metric-costo');
+      if (mCosto) mCosto.innerText = `-$${costoReal.toLocaleString('es-AR')}`;
+
+      const mPctReg = document.getElementById('pg-metric-pctreg');
+      if (mPctReg) mPctReg.innerText = `${pctReg.toFixed(1)}%`;
+
+      const mVisitas = document.getElementById('pg-metric-visitas');
+      if (mVisitas) mVisitas.innerText = `~${visitas} visitas`;
+
+      const saveBtn = document.getElementById('pg-save-btn');
+      if (saveBtn) {
+        saveBtn.style.background = isDeficit ? '#e04a3f' : 'var(--success)';
+      }
+    }
+
+    function buildPlaygroundModalDOM() {
+      const container = document.getElementById('playground-modal-content');
+      if (!container) return;
+
+      const mGlobal = (Number(document.getElementById('cfg-margin-input') ? document.getElementById('cfg-margin-input').value : stateB.config.marginPercent) || 65);
+      const isPercent = (playgroundState.type === 'PERCENT_CAP');
+      const vpVal = Math.round(stateB.config.vPuntoMax || 34);
 
       container.innerHTML = `
         <!-- HEADER -->
@@ -1413,10 +1477,10 @@
           <div>
             <label style="font-size: 0.68rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">Modalidad de Beneficio:</label>
             <div style="display: flex; gap: 8px; margin-top: 4px;">
-              <button class="sys-tab ${!isPercent ? 'active' : ''}" style="flex:1; padding: 7px; font-size: 0.72rem;" onclick="setPlaygroundType('FIXED')">
+              <button id="pg-tab-fixed" class="sys-tab ${!isPercent ? 'active' : ''}" style="flex:1; padding: 7px; font-size: 0.72rem;" onclick="togglePlaygroundType('FIXED')">
                 Plato / Producto Gratis
               </button>
-              <button class="sys-tab ${isPercent ? 'active' : ''}" style="flex:1; padding: 7px; font-size: 0.72rem;" onclick="setPlaygroundType('PERCENT_CAP')">
+              <button id="pg-tab-percent" class="sys-tab ${isPercent ? 'active' : ''}" style="flex:1; padding: 7px; font-size: 0.72rem;" onclick="togglePlaygroundType('PERCENT_CAP')">
                 % Descuento en Factura
               </button>
             </div>
@@ -1426,10 +1490,44 @@
           <div style="background: #171b26; border: 1px solid #232838; border-radius: 8px; padding: 10px 12px; display: flex; flex-direction: column; gap: 8px;">
             <div>
               <label style="font-size: 0.68rem; color: var(--text-muted);">Nombre para mostrar al cliente:</label>
-              <input type="text" class="input-field" style="margin-top:2px;" id="pg-input-name" placeholder="Ej: Gyozas de Salmón (6u)" value="${playgroundState.name}" oninput="updatePlaygroundField('name', this.value)">
+              <input type="text" class="input-field" style="margin-top:2px;" id="pg-input-name" placeholder="Ej: Gyozas de Salmón (6u)" value="${playgroundState.name}" oninput="playgroundState.name = this.value">
             </div>
 
-            ${typeSpecificFields}
+            <!-- CAMPOS PLATO FIJO -->
+            <div id="pg-fields-fixed" style="display: ${!isPercent ? 'block' : 'none'};">
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                <div>
+                  <label style="font-size: 0.68rem; color: var(--text-muted);">Precio de carta ($):</label>
+                  <input type="number" id="pg-input-retail" class="input-field" style="margin-top:2px;" value="${playgroundState.retailPrice}" oninput="handlePlaygroundCostChange()">
+                </div>
+                <div>
+                  <label style="font-size: 0.68rem; color: var(--text-muted);">Margen del plato (%):</label>
+                  <input type="number" id="pg-input-margin" class="input-field" style="margin-top:2px;" value="${playgroundState.marginPercent || mGlobal}" oninput="handlePlaygroundCostChange()">
+                </div>
+              </div>
+              <div style="font-size: 0.66rem; color: var(--text-muted); display: flex; justify-content: space-between; background: #0d0f15; padding: 5px 8px; border-radius: 4px; margin-top: 6px;">
+                <span>Costo reposición cocina (CMV):</span>
+                <b id="pg-cost-fixed-display" style="color: #ff7b72;">$0</b>
+              </div>
+            </div>
+
+            <!-- CAMPOS DESCUENTO PORCENTUAL -->
+            <div id="pg-fields-percent" style="display: ${isPercent ? 'block' : 'none'};">
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                <div>
+                  <label style="font-size: 0.68rem; color: var(--text-muted);">% Descuento:</label>
+                  <input type="number" id="pg-input-disc-pct" class="input-field" style="margin-top:2px;" min="5" max="70" value="${playgroundState.discountPercent}" oninput="handlePlaygroundCostChange()">
+                </div>
+                <div>
+                  <label style="font-size: 0.68rem; color: var(--text-muted);">Ticket máx. aplicable ($):</label>
+                  <input type="number" id="pg-input-ticket-max" class="input-field" style="margin-top:2px;" value="${playgroundState.ticketMax}" oninput="handlePlaygroundCostChange()">
+                </div>
+              </div>
+              <div style="font-size: 0.66rem; color: var(--text-muted); display: flex; justify-content: space-between; background: #0d0f15; padding: 5px 8px; border-radius: 4px; margin-top: 6px;">
+                <span>Tope máximo de descuento:</span>
+                <b id="pg-cost-percent-display" style="color: #ff7b72;">$0</b>
+              </div>
+            </div>
           </div>
 
           <!-- PLAYGROUND DE SIMULACIÓN INTERACTIVA -->
@@ -1444,53 +1542,56 @@
               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
                 <span style="font-size: 0.7rem; color: var(--text-muted);">Meta requerida:</span>
                 <div style="display: flex; align-items: center; gap: 4px;">
-                  <input type="number" class="input-field" style="width: 60px; padding: 2px 5px; font-size: 0.85rem; font-weight: 800; text-align: right; color: ${statusColor};" value="${currentPts}" oninput="updatePlaygroundPoints(this.value)">
-                  <b style="font-size: 0.72rem; color: ${statusColor};">PTS</b>
+                  <input type="number" id="pg-pts-input" class="input-field" style="width: 60px; padding: 2px 5px; font-size: 0.85rem; font-weight: 800; text-align: right; color: #56d364;" value="100" oninput="handlePlaygroundPointsInput(this.value)">
+                  <b id="pg-pts-badge-txt" style="font-size: 0.72rem; color: #56d364;">PTS</b>
                 </div>
               </div>
 
-              <input type="range" class="slider" min="${minSlider}" max="${maxSlider}" step="10" value="${currentPts}" oninput="updatePlaygroundPoints(this.value)" style="width: 100%;">
+              <input type="range" id="pg-pts-slider" class="slider" min="20" max="250" step="10" value="100" oninput="handlePlaygroundSlider(this.value)" style="width: 100%;">
               <div style="display: flex; justify-content: space-between; font-size: 0.6rem; color: var(--text-muted); margin-top: 2px;">
-                <span>Más accesible (${minSlider} pts)</span>
-                <span style="color:#79c0ff;">Sugerido (${ptsSugeridos} pts)</span>
-                <span>Ultra seguro (${maxSlider} pts)</span>
+                <span id="pg-slider-min-lbl">Más accesible</span>
+                <span id="pg-slider-sug-lbl" style="color:#79c0ff;">Sugerido</span>
+                <span id="pg-slider-max-lbl">Ultra seguro</span>
               </div>
             </div>
 
             <div style="display: flex; justify-content: flex-end;">
-              <button onclick="setPlaygroundPointsDefault(${ptsSugeridos})" style="background: rgba(56, 139, 253, 0.12); border: 1px solid rgba(56, 139, 253, 0.3); color: #79c0ff; font-size: 0.65rem; padding: 3px 8px; border-radius: 4px; cursor: pointer;">
-                ↺ Restablecer Puntos Sugeridos (${ptsSugeridos} PTS)
+              <button id="pg-sug-btn" onclick="setPlaygroundPointsDefault()" style="background: rgba(56, 139, 253, 0.12); border: 1px solid rgba(56, 139, 253, 0.3); color: #79c0ff; font-size: 0.65rem; padding: 3px 8px; border-radius: 4px; cursor: pointer;">
+                ↺ Restablecer Puntos Sugeridos
               </button>
             </div>
 
             <!-- SEMÁFORO DE INCIDENCIA EN TIEMPO REAL -->
-            <div style="background: ${trafficBg}; border: 1px solid ${trafficBorder}; border-radius: 6px; padding: 8px 10px; margin-top: 2px;">
+            <div id="pg-traffic-box" style="background: rgba(35, 134, 54, 0.14); border: 1px solid #238636; border-radius: 6px; padding: 8px 10px; margin-top: 2px;">
               <div style="display: flex; justify-content: space-between; align-items: center;">
-                <span style="font-size: 0.7rem; font-weight: 800; color: ${statusColor};">${trafficTitle}</span>
-                <span style="font-size: 1.15rem; font-weight: 900; color: ${statusColor};">${pct1er.toFixed(1)}%</span>
+                <span id="pg-traffic-title" style="font-size: 0.7rem; font-weight: 800; color: #56d364;">✓ DENTRO DEL OBJETIVO SEGURO</span>
+                <span id="pg-traffic-pct" style="font-size: 1.15rem; font-weight: 900; color: #56d364;">0.0%</span>
               </div>
-              <div style="font-size: 0.65rem; color: #c9d1d9; margin-top: 3px; line-height: 1.3;">
-                ${trafficExplanation}
+              <div id="pg-traffic-exp" style="font-size: 0.65rem; color: #c9d1d9; margin-top: 3px; line-height: 1.3;">
+                ...
               </div>
             </div>
 
             <!-- DESGLOSE ECONÓMICO RÁPIDO -->
             <div style="font-size: 0.67rem; color: var(--text-muted); display: flex; flex-direction: column; gap: 3px; border-top: 1px solid #1a202c; padding-top: 6px;">
               <div style="display: flex; justify-content: space-between;">
-                <span>• Venta previa en 1er canje (${ptsPagados1er} pts pagados + 20 regalo):</span>
-                <b style="color: #fff;">$${gasto1er.toLocaleString('es-AR')}</b>
+                <span>• Venta previa en 1er canje:</span>
+                <div style="text-align: right;">
+                  <b id="pg-metric-gasto1er" style="color: #fff;">$0</b>
+                  <span id="pg-metric-gasto1er-sub" style="font-size: 0.62rem; color: var(--text-muted); margin-left: 4px;"></span>
+                </div>
               </div>
               <div style="display: flex; justify-content: space-between;">
                 <span>• Costo directo asumido por el local:</span>
-                <b style="color: #ff7b72;">-$${costoReal.toLocaleString('es-AR')}</b>
+                <b id="pg-metric-costo" style="color: #ff7b72;">-$0</b>
               </div>
               <div style="display: flex; justify-content: space-between;">
                 <span>• Incidencia en canjes posteriores (sin bono):</span>
-                <b style="color: #56d364;">${pctReg.toFixed(1)}%</b>
+                <b id="pg-metric-pctreg" style="color: #56d364;">0.0%</b>
               </div>
               <div style="display: flex; justify-content: space-between;">
                 <span>• Visitas estimadas requeridas (~$10.000/visita):</span>
-                <b style="color: #79c0ff;">~${visitas} visitas</b>
+                <b id="pg-metric-visitas" style="color: #79c0ff;">~0 visitas</b>
               </div>
             </div>
           </div>
@@ -1501,11 +1602,55 @@
           <button class="btn btn-outline" style="width: auto; padding: 6px 14px; font-size: 0.74rem;" onclick="closePrizePlaygroundModal()">
             Cancelar
           </button>
-          <button class="btn btn-action" style="width: auto; padding: 6px 16px; font-size: 0.74rem; background: ${isDeficit ? '#e04a3f' : 'var(--success)'};" onclick="savePlaygroundPrizeToCatalog()">
+          <button id="pg-save-btn" class="btn btn-action" style="width: auto; padding: 6px 16px; font-size: 0.74rem;" onclick="savePlaygroundPrizeToCatalog()">
             + Guardar en el Catálogo
           </button>
         </div>
       `;
+    }
+
+    function savePlaygroundPrizeToCatalog() {
+      const nameInput = document.getElementById('pg-input-name');
+      const name = (nameInput ? nameInput.value : playgroundState.name || '').trim();
+      if (!name) {
+        alert("Por favor escribí el nombre del producto o beneficio.");
+        return;
+      }
+
+      const mGlobal = (Number(document.getElementById('cfg-margin-input') ? document.getElementById('cfg-margin-input').value : stateB.config.marginPercent) || 65);
+      const isPercent = (playgroundState.type === 'PERCENT_CAP');
+      
+      let retailPrice = 0;
+      let worstCaseCost = 0;
+      if (!isPercent) {
+        retailPrice = Number(document.getElementById('pg-input-retail') ? document.getElementById('pg-input-retail').value : playgroundState.retailPrice) || 4500;
+        const itemMargin = Number(document.getElementById('pg-input-margin') ? document.getElementById('pg-input-margin').value : playgroundState.marginPercent) || mGlobal;
+        worstCaseCost = Math.round(retailPrice * (1 - (itemMargin / 100)));
+      } else {
+        const discPct = Number(document.getElementById('pg-input-disc-pct') ? document.getElementById('pg-input-disc-pct').value : playgroundState.discountPercent) || 25;
+        const ticketMax = Number(document.getElementById('pg-input-ticket-max') ? document.getElementById('pg-input-ticket-max').value : playgroundState.ticketMax) || 16000;
+        retailPrice = ticketMax;
+        worstCaseCost = Math.round(ticketMax * (discPct / 100));
+      }
+
+      const ptsInput = document.getElementById('pg-pts-input');
+      const pts = Number(ptsInput ? ptsInput.value : (playgroundState.customPoints || calculatePlaygroundSuggestedPoints(worstCaseCost))) || 100;
+
+      const newPrize = {
+        id: Date.now(),
+        name: name,
+        type: playgroundState.type,
+        retailPrice: retailPrice,
+        worstCaseCost: worstCaseCost,
+        points: pts,
+        isDefault: false,
+        isCustomPoints: true
+      };
+
+      stateB.config.prizes.push(newPrize);
+      stateB.config.activePrizeIndex = stateB.config.prizes.length - 1;
+      closePrizePlaygroundModal();
+      updateSetupMath(true);
     }
 
     function applySetupAndGoToCashier() {
