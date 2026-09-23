@@ -571,8 +571,8 @@
     <!-- COLUMNA 2: WHATSAPP DEL CLIENTE -->
     <div class="screen-col">
       <div class="col-label">
-        <span>Celular del Cliente</span>
-        <span>Canal: WhatsApp</span>
+        <span id="col2-title">Celular del Cliente</span>
+        <span id="col2-role">Canal: WhatsApp</span>
       </div>
       <div class="device">
         <div class="wa-top">
@@ -613,11 +613,12 @@
         sliderFactor: 0.70,
         maxSafePercent: 4.8,
         recommendedPercent: 3.4,
-        // Por defecto: Premio % con tope (auto-indexado a inflación y deducible de IVA/IIBB)
+        activePrizeIndex: 0,
+        // Catálogo configurable con precios de carta (PVP) y topes de seguridad
         prizes: [
-          { name: "50% OFF en tu Combo Favorito (Tope $7.000)", type: "PERCENT_CAP", worstCaseCost: 7000, points: 210, isDefault: true },
-          { name: "Combo 15 Piezas Gratis", type: "FIXED", worstCaseCost: 10000, points: 300, isDefault: false },
-          { name: "Postre o Roll chico", type: "FIXED", worstCaseCost: 3500, points: 110, isDefault: false }
+          { id: 0, name: "50% OFF en tu Combo Favorito", type: "PERCENT_CAP", retailPrice: 14000, worstCaseCost: 7000, points: 210, isDefault: true },
+          { id: 1, name: "Combo 15 Piezas Gratis", type: "FIXED", retailPrice: 10000, worstCaseCost: 10000, points: 300, isDefault: false },
+          { id: 2, name: "Postre o Roll chico", type: "FIXED", retailPrice: 3500, worstCaseCost: 3500, points: 110, isDefault: false }
         ]
       },
       client: {
@@ -721,20 +722,7 @@
 
       // 1. CONFIGURACIÓN DEL DUEÑO
       if (stateB.viewMode === "ONBOARDING_SETUP") {
-        let prizeRowsHtml = '';
-        cfg.prizes.forEach((p, idx) => {
-          prizeRowsHtml += `
-            <div class="prize-row">
-              <div>
-                <b>${p.name}</b> ${p.isDefault ? '<span style="font-size:0.6rem; color:#56d364; background:rgba(86,211,100,0.15); padding:1px 4px; border-radius:3px;">Sugerido</span>' : ''}<br>
-                <span style="color: var(--text-muted); font-size: 0.68rem;">
-                  ${p.type === 'PERCENT_CAP' ? 'Descuento % en ticket (inmune a inflación)' : 'Producto físico gratis'} · Tope: $${p.worstCaseCost.toLocaleString('es-AR')}
-                </span>
-              </div>
-              <span class="prize-badge">${p.points} PTS</span>
-            </div>
-          `;
-        });
+        let prizeRowsHtml = renderPrizeRowsHtml();
 
         el.innerHTML = `
           <div class="card">
@@ -786,8 +774,11 @@
 
             <div>
               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
-                <label style="font-size: 0.72rem; color: var(--text-muted); font-weight: 600;">Catálogo de Beneficios Calculados:</label>
+                <label style="font-size: 0.72rem; color: var(--text-muted); font-weight: 600;">Catálogo de Premios Configurable:</label>
                 <span style="font-size: 0.68rem; color: #56d364;">Regla: $1.000 = 1 pt</span>
+              </div>
+              <div style="font-size: 0.68rem; color: #79c0ff; margin-bottom: 6px;">
+                👆 Tocá un premio para ver su balance de ganancias en la pantalla derecha. Podés ajustar su precio de carta ($).
               </div>
               <div class="prize-list" id="prize-list-container">
                 ${prizeRowsHtml}
@@ -956,28 +947,67 @@
       // (Ceil step = 10 garantiza que R_real <= C_rec, el negocio jamás pierde margen)
       const roundStep = 10;
       stateB.config.prizes.forEach(p => {
+        if (p.type === 'PERCENT_CAP') {
+          p.worstCaseCost = Math.round(p.retailPrice * 0.5);
+        } else {
+          p.worstCaseCost = p.retailPrice;
+        }
         const rawPts = p.worstCaseCost / stateB.config.vPuntoMax;
         p.points = Math.ceil(rawPts / roundStep) * roundStep;
       });
 
       const container = document.getElementById('prize-list-container');
       if (container) {
-        let rowsHtml = '';
-        stateB.config.prizes.forEach(p => {
-          rowsHtml += `
-            <div class="prize-row">
-              <div>
-                <b>${p.name}</b> ${p.isDefault ? '<span style="font-size:0.6rem; color:#56d364; background:rgba(86,211,100,0.15); padding:1px 4px; border-radius:3px;">Sugerido</span>' : ''}<br>
-                <span style="color: var(--text-muted); font-size: 0.68rem;">
-                  ${p.type === 'PERCENT_CAP' ? 'Descuento % en ticket (inmune a inflación)' : 'Producto físico gratis'} · Tope: $${p.worstCaseCost.toLocaleString('es-AR')}
-                </span>
-              </div>
-              <span class="prize-badge">${p.points} PTS</span>
-            </div>
-          `;
-        });
-        container.innerHTML = rowsHtml;
+        container.innerHTML = renderPrizeRowsHtml();
       }
+
+      // Si estamos en Onboarding, actualizar en tiempo real la radiografía financiera en columna 2
+      if (stateB.viewMode === "ONBOARDING_SETUP") {
+        renderWhatsAppB();
+      }
+    }
+
+    function renderPrizeRowsHtml() {
+      let rowsHtml = '';
+      stateB.config.prizes.forEach((p, idx) => {
+        const isSelected = (idx === (stateB.config.activePrizeIndex || 0));
+        rowsHtml += `
+          <div class="prize-row" onclick="selectPrizeForInspection(${idx})" style="cursor:pointer; border: 1px solid ${isSelected ? '#388bfd' : '#232838'}; background: ${isSelected ? '#131b2c' : '#0d0f15'}; margin-bottom: 6px; padding: 9px 10px; border-radius: 6px; transition: all 0.15s ease;">
+            <div style="flex:1;">
+              <div style="display:flex; align-items:center; gap:6px;">
+                <b style="color: ${isSelected ? '#fff' : '#c9d1d9'}; font-size: 0.77rem;">${p.name}</b>
+                ${p.isDefault ? '<span style="font-size:0.6rem; color:#56d364; background:rgba(86,211,100,0.15); padding:1px 4px; border-radius:3px;">Insignia</span>' : ''}
+              </div>
+              <div style="color: var(--text-muted); font-size: 0.67rem; margin-top: 2px;">
+                ${p.type === 'PERCENT_CAP' ? 'Descuento 50% en ticket (inmune a inflación)' : 'Producto físico 100% gratis'}
+              </div>
+              <div style="display:flex; align-items:center; gap:4px; margin-top:5px; font-size:0.68rem; color:var(--text-muted);" onclick="event.stopPropagation()">
+                <span>Precio Carta: $</span>
+                <input type="number" class="input-field" style="width:75px; padding:2px 5px; font-size:0.7rem; text-align:right;" value="${p.retailPrice}" oninput="updatePrizePrice(${idx}, this.value)">
+              </div>
+            </div>
+            <div style="text-align:right; display:flex; flex-direction:column; align-items:flex-end; gap:4px;">
+              <span class="prize-badge">${p.points} PTS</span>
+              <span style="font-size:0.63rem; color:${isSelected ? '#79c0ff' : 'var(--text-muted)'}; font-weight:600;">
+                ${isSelected ? '● Viendo ROI' : 'Tocá para ver'}
+              </span>
+            </div>
+          </div>
+        `;
+      });
+      return rowsHtml;
+    }
+
+    function selectPrizeForInspection(idx) {
+      stateB.config.activePrizeIndex = idx;
+      updateSetupMath();
+    }
+
+    function updatePrizePrice(idx, newPrice) {
+      const val = Number(newPrice) || 0;
+      if (val < 100) return;
+      stateB.config.prizes[idx].retailPrice = val;
+      updateSetupMath();
     }
 
     function applySetupAndGoToCashier() {
@@ -1040,6 +1070,111 @@
 
     function renderWhatsAppB() {
       const el = document.getElementById('wa-chat');
+      const colTitle = document.getElementById('col2-title');
+      const colRole = document.getElementById('col2-role');
+
+      // VISTA ESPECIAL PASO 1: IMPACTO FINANCIERO + PREVIEW WHATSAPP
+      if (stateB.viewMode === "ONBOARDING_SETUP") {
+        if (colTitle) colTitle.innerText = "Impacto Financiero y WhatsApp";
+        if (colRole) colRole.innerText = "Paso 1: ROI en Vivo";
+
+        const activeIdx = stateB.config.activePrizeIndex || 0;
+        const p = stateB.config.prizes[activeIdx] || stateB.config.prizes[0];
+        const m = (Number(document.getElementById('cfg-margin-input') ? document.getElementById('cfg-margin-input').value : stateB.config.marginPercent) || 65);
+        
+        // Cuentas unitarias por cliente:
+        const pts = p.points;
+        const gastoAcumulado = pts * stateB.config.ratioSpend; // ej. 210.000
+        const gananciaBrutaPrevia = Math.round(gastoAcumulado * (m / 100)); // ej. 136.500
+        
+        let costoRealPremio = 0;
+        let aclaracionCosto = "";
+        if (p.type === 'FIXED') {
+          costoRealPremio = Math.round(p.retailPrice * (1 - (m / 100)));
+          aclaracionCosto = `Costo real de materia prima (CMV ${100 - m}%) para tu cocina de un plato que en carta vale $${p.retailPrice.toLocaleString('es-AR')}.`;
+        } else {
+          costoRealPremio = p.worstCaseCost;
+          aclaracionCosto = `Descuento real directo aplicado en la cuenta del cliente (tope máximo garantizado).`;
+        }
+
+        const gananciaLimpia = gananciaBrutaPrevia - costoRealPremio;
+        const pctCostoReal = ((costoRealPremio / gastoAcumulado) * 100).toFixed(1);
+        const visitasPromedio = Math.ceil(gastoAcumulado / 10000);
+
+        el.innerHTML = `
+          <!-- TARJETA RADIOGRAFÍA FINANCIERA -->
+          <div style="background: #171b26; border: 1px solid #283044; border-radius: 8px; padding: 12px; display: flex; flex-direction: column; gap: 8px;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span style="font-weight: 700; font-size: 0.82rem; color: #79c0ff;">📊 Ecuación Financiera del Premio</span>
+              <span style="font-size: 0.65rem; background: rgba(56, 139, 253, 0.15); color: #79c0ff; padding: 2px 6px; border-radius: 4px;">
+                ${p.name.split('(')[0].trim()}
+              </span>
+            </div>
+
+            <div style="font-size: 0.71rem; color: var(--text-muted); line-height: 1.35;">
+              Para que un cliente canjee este premio, necesita acumular <b>${pts} Puntos</b>. Mirá lo que entra y sale de tu caja:
+            </div>
+
+            <div style="background: #0d0f15; border: 1px solid #1c2230; border-radius: 6px; padding: 9px 11px; display: flex; flex-direction: column; gap: 6px; font-size: 0.73rem;">
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span style="color: var(--text);">• Ventas que te dejó el cliente:</span>
+                <b style="color: #79c0ff; font-size: 0.82rem;">$${gastoAcumulado.toLocaleString('es-AR')}</b>
+              </div>
+              <div style="color: var(--text-muted); font-size: 0.66rem; padding-left: 8px; margin-top: -3px;">
+                (Equivale a ~${visitasPromedio} visitas acumuladas con regla $1.000 = 1 pt)
+              </div>
+
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 2px;">
+                <span style="color: var(--text);">• Ganancia bruta antes del premio (${m}% margen):</span>
+                <b style="color: #56d364; font-size: 0.82rem;">+$${gananciaBrutaPrevia.toLocaleString('es-AR')}</b>
+              </div>
+
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span style="color: #ff7b72;">• Costo real del premio para el local:</span>
+                <b style="color: #ff7b72; font-size: 0.82rem;">-$${costoRealPremio.toLocaleString('es-AR')}</b>
+              </div>
+              <div style="color: var(--text-muted); font-size: 0.66rem; padding-left: 8px; margin-top: -3px;">
+                *${aclaracionCosto}
+              </div>
+
+              <div style="height: 1px; background: #232838; margin: 4px 0;"></div>
+
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-weight: 700; color: #fff;">GANANCIA NETA EN TU BOLSILLO:</span>
+                <span style="font-size: 1rem; font-weight: 800; color: #56d364;">+$${gananciaLimpia.toLocaleString('es-AR')}</span>
+              </div>
+              <div style="font-size: 0.68rem; color: #56d364; text-align: right; font-weight: 600;">
+                Costo real del regalo: solo ${pctCostoReal}% de lo que el cliente te pagó
+              </div>
+            </div>
+          </div>
+
+          <!-- VISTA PREVIA DE WHATSAPP -->
+          <div style="font-size: 0.68rem; color: #8696a0; text-align: center; margin: 6px 0 2px 0;">
+            ── Vista Previa: Así lo ve el cliente en WhatsApp ──
+          </div>
+
+          <div class="wa-msg recv">
+            ¡Hola María! Ya sos parte del <b>Club Sushi</b> 🍣.<br>
+            Tu saldo inicial incluye un <b>Bono de Bienvenida de 20 Puntos</b> 🎁.<br><br>
+            Sumás 1 punto cada <b>$1.000</b>.<br>
+            Llegás a tu <b>${p.name}</b> al alcanzar <b>${p.points} Puntos</b>.
+            <div class="points-badge">
+              <div style="font-size: 0.65rem; color: #8b949e; text-transform: uppercase;">Club Sushi Puntos</div>
+              <div class="points-val">20 PTS</div>
+              <div class="qr-client-img"><div class="qr-lines"></div></div>
+              <div style="font-size: 0.65rem; color: #8b949e; margin-top: 3px;">Mostrá tu QR o decí tu DNI en caja</div>
+            </div>
+            <div class="wa-time">19:00 ✓✓</div>
+          </div>
+        `;
+        return;
+      }
+
+      // VISTA PASO 2 Y PASO 3: WHATSAPP DE MARÍA GONZÁLEZ
+      if (colTitle) colTitle.innerText = "Celular del Cliente";
+      if (colRole) colRole.innerText = "Canal: WhatsApp";
+
       let html = '';
       stateB.chatHistory.forEach(msg => {
         html += `
