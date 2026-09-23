@@ -953,9 +953,6 @@
       stateB.config.maxSafePercent = (cmax * 100).toFixed(1);
       stateB.config.recommendedPercent = (crec * 100).toFixed(1);
 
-      document.getElementById('txt-cmax').innerText = `${stateB.config.maxSafePercent}%`;
-      document.getElementById('txt-crec').innerText = `${stateB.config.recommendedPercent}%`;
-
       let modeTxt = "Equilibrado";
       let expTxt = "<b>Equilibrado:</b> Busca un balance intermedio, reservando margen por si la respuesta del cliente es inferior a la estimación.";
       if (sliderVal <= 50) {
@@ -965,19 +962,17 @@
         modeTxt = "Flexible (Límite Máximo)";
         expTxt = "<b>Flexible:</b> Confiás en la proyección y usás el 100% de tu techo. <span style='color:#f59e0b;'>⚠️ Sin colchón ante imprevistos.</span>";
       }
-      document.getElementById('label-slider-mode').innerText = `${modeTxt} (~${stateB.config.recommendedPercent}% costo)`;
-      document.getElementById('txt-slider-explanation').innerHTML = expTxt;
+      
+      const elMode = document.getElementById('label-slider-mode');
+      if (elMode) elMode.innerText = `${modeTxt} (~${stateB.config.recommendedPercent}% costo)`;
+      const elExp = document.getElementById('txt-slider-explanation');
+      if (elExp) elExp.innerHTML = expTxt;
 
       stateB.config.ratioSpend = 1000;
       const alpha = 1 / 1000;
       const vPuntoMax = crec / alpha;
       stateB.config.vPuntoMax = vPuntoMax > 5 ? vPuntoMax : 10;
-
       const vpVal = Math.round(stateB.config.vPuntoMax);
-      const elVp = document.getElementById('txt-vpunto');
-      if (elVp) elVp.innerText = vpVal;
-      const elVpRule = document.getElementById('txt-vpunto-rule');
-      if (elVpRule) elVpRule.innerText = vpVal;
 
       // Actualizar tarjeta de presupuesto seguro con advertencia visual si está en el borde del abismo
       const boxBudget = document.getElementById('box-budget-alert');
