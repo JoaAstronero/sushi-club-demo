@@ -783,12 +783,20 @@
               </div>
               <input type="range" class="slider-range" id="cfg-slider" min="50" max="100" value="70" step="10" oninput="updateSetupMath()">
               <div style="font-size: 0.66rem; color: var(--text-muted); line-height: 1.25;" id="txt-slider-explanation">
-                <b>Equilibrado:</b> Busca un balance intermedio, reservando margen por si la respuesta del cliente es menor a la estimada.
+                <b>Equilibrado:</b> Busca un balance intermedio, reservando margen por si la respuesta del cliente es inferior a la estimación.
               </div>
             </div>
 
-            <div class="alert-box info" style="padding: 6px 10px; font-size: 0.7rem; line-height: 1.35;">
-              <b>Estimación técnica:</b> Techo teórico prudente: <b id="txt-cmax">4.8%</b> · Costo objetivo: <b id="txt-crec" style="color: #56d364;">3.4%</b> (redondeo preventivo a múltiplos de 10).
+            <div class="alert-box info" style="padding: 7px 10px; font-size: 0.7rem; line-height: 1.4;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
+                <span><b>Presupuesto seguro:</b> Techo: <b id="txt-cmax">4.8%</b> · Costo objetivo: <b id="txt-crec" style="color: #56d364;">3.4%</b></span>
+                <span style="background: rgba(56, 139, 253, 0.2); padding: 1px 6px; border-radius: 4px; font-weight: 700; color: #79c0ff;">
+                  1 pt = hasta $<span id="txt-vpunto">34</span>
+                </span>
+              </div>
+              <div style="font-size: 0.65rem; color: var(--text-muted);">
+                💡 <i>Regla mental: para agregar un premio nuevo, dividís su costo por $<span id="txt-vpunto-rule">34</span> y obtenés sus puntos exactos sin perforar margen.</i>
+              </div>
             </div>
 
             <div>
@@ -797,7 +805,7 @@
                 <span style="font-size: 0.68rem; color: #56d364;">Regla base: $1.000 = 1 pt</span>
               </div>
               <div style="font-size: 0.66rem; color: #79c0ff; margin-bottom: 4px;">
-                👆 Seleccioná un beneficio para ver el escenario estimado de compras previas vs. costo del premio.
+                👆 Seleccioná un beneficio para validar en vivo su porcentaje de costo a la derecha.
               </div>
               <div class="prize-list" id="prize-list-container">
                 ${prizeRowsHtml}
@@ -946,7 +954,7 @@
       document.getElementById('txt-crec').innerText = `${stateB.config.recommendedPercent}%`;
 
       let modeTxt = "Equilibrado";
-      let expTxt = "<b>Equilibrado:</b> Busca un balance intermedio, reservando margen por si la respuesta del cliente es menor a la estimada.";
+      let expTxt = "<b>Equilibrado:</b> Busca un balance intermedio, reservando margen por si la respuesta del cliente es inferior a la estimación.";
       if (sliderVal <= 50) {
         modeTxt = "Conservador";
         expTxt = "<b>Conservador:</b> Asigna un costo menor en beneficios (desde ~2.4%), priorizando máxima prudencia de caja.";
@@ -961,6 +969,12 @@
       const alpha = 1 / 1000;
       const vPuntoMax = crec / alpha;
       stateB.config.vPuntoMax = vPuntoMax > 5 ? vPuntoMax : 10;
+
+      const vpVal = Math.round(stateB.config.vPuntoMax);
+      const elVp = document.getElementById('txt-vpunto');
+      if (elVp) elVp.innerText = vpVal;
+      const elVpRule = document.getElementById('txt-vpunto-rule');
+      if (elVpRule) elVpRule.innerText = vpVal;
 
       // Redondeo estético seguro: siempre hacia arriba al múltiplo de 10 más cercano
       // (Ceil step = 10 garantiza que R_real <= C_rec, el negocio jamás pierde margen)
@@ -990,15 +1004,22 @@
       let rowsHtml = '';
       stateB.config.prizes.forEach((p, idx) => {
         const isSelected = (idx === (stateB.config.activePrizeIndex || 0));
+        const isPercent = (p.type === 'PERCENT_CAP');
         rowsHtml += `
           <div class="prize-row" onclick="selectPrizeForInspection(${idx})" style="cursor:pointer; border: 1px solid ${isSelected ? '#388bfd' : '#232838'}; background: ${isSelected ? '#131b2c' : '#0d0f15'}; margin-bottom: 4px; padding: 6px 9px; border-radius: 6px; transition: all 0.15s ease;">
             <div style="flex:1;">
-              <div style="display:flex; align-items:center; gap:6px;">
+              <div style="display:flex; align-items:center; gap:5px; flex-wrap:wrap;">
                 <b style="color: ${isSelected ? '#fff' : '#c9d1d9'}; font-size: 0.76rem;">${p.name}</b>
-                ${p.isDefault ? '<span style="font-size:0.58rem; color:#56d364; background:rgba(86,211,100,0.15); padding:1px 4px; border-radius:3px;">Insignia</span>' : ''}
+                ${p.isDefault ? '<span style="font-size:0.56rem; color:#56d364; background:rgba(86,211,100,0.15); padding:1px 4px; border-radius:3px;">Insignia</span>' : ''}
+                ${isPercent 
+                  ? '<span style="font-size:0.56rem; color:#79c0ff; background:rgba(121,192,255,0.12); padding:1px 4px; border-radius:3px;">Inmune a inflación</span>'
+                  : '<span style="font-size:0.56rem; color:#d29922; background:rgba(210,153,34,0.15); padding:1px 4px; border-radius:3px;">Revisar cada 3-6 meses</span>'
+                }
               </div>
-              <div style="color: var(--text-muted); font-size: 0.65rem; margin-top: 1px;">
-                ${p.type === 'PERCENT_CAP' ? 'Descuento 50% en ticket (inmune a inflación)' : 'Producto físico 100% gratis'}
+              <div style="color: var(--text-muted); font-size: 0.65rem; margin-top: 2px;">
+                ${isPercent 
+                  ? 'Descuento en ticket. Si sube la carta, no requiere cambiar los puntos.' 
+                  : 'Producto físico gratis. Si sube por inflación, conviene ajustar sus puntos.'}
               </div>
               <div style="display:flex; align-items:center; gap:4px; margin-top:3px; font-size:0.67rem; color:var(--text-muted);" onclick="event.stopPropagation()">
                 <span>Precio Carta: $</span>
@@ -1008,7 +1029,7 @@
             <div style="text-align:right; display:flex; flex-direction:column; align-items:flex-end; gap:3px;">
               <span class="prize-badge" style="font-size:0.7rem; padding:2px 5px;">${p.points} PTS</span>
               <span style="font-size:0.6rem; color:${isSelected ? '#79c0ff' : 'var(--text-muted)'}; font-weight:600;">
-                ${isSelected ? '● Viendo ROI' : 'Tocá para ver'}
+                ${isSelected ? '● Validando' : 'Tocá para validar'}
               </span>
             </div>
           </div>
@@ -1095,15 +1116,15 @@
 
       // VISTA ESPECIAL PASO 1: IMPACTO FINANCIERO LIMPIO (SIN CHROME DE WHATSAPP)
       if (stateB.viewMode === "ONBOARDING_SETUP") {
-        if (colTitle) colTitle.innerText = "Simulador de Escenario · Paso 1";
-        if (colRole) colRole.innerText = "Estimación Unitaria";
+        if (colTitle) colTitle.innerText = "Simulador de Validación";
+        if (colRole) colRole.innerText = "Vista en Vivo";
 
         if (headerEl) {
           headerEl.innerHTML = `
             <div class="caja-top">
-              <span style="font-weight: 700; font-size: 0.8rem; color: #fff;">ESCENARIO TEÓRICO UNITARIO</span>
+              <span style="font-weight: 700; font-size: 0.8rem; color: #fff;">VALIDACIÓN DE BENEFICIO</span>
               <span class="status-tag" style="color: #79c0ff; font-weight: 600;">
-                <span class="dot-active" style="background:#79c0ff;"></span>Proyección Estimada
+                <span class="dot-active" style="background:#79c0ff;"></span>Vista en Vivo
               </span>
             </div>
           `;
@@ -1116,20 +1137,23 @@
         // Cuentas unitarias por cliente:
         const pts = p.points;
         const gastoAcumulado = pts * stateB.config.ratioSpend; // ej. 210.000
-        const gananciaBrutaPrevia = Math.round(gastoAcumulado * (m / 100)); // ej. 136.500
         
         let costoRealPremio = 0;
         let aclaracionCosto = "";
         if (p.type === 'FIXED') {
           costoRealPremio = Math.round(p.retailPrice * (1 - (m / 100)));
-          aclaracionCosto = `Costo directo de reposición/materia prima (CMV ~${100 - m}%) para un producto carta $${p.retailPrice.toLocaleString('es-AR')}.`;
+          aclaracionCosto = `Costo directo de reposición (CMV ~${100 - m}%) para plato carta de $${p.retailPrice.toLocaleString('es-AR')}.`;
         } else {
           costoRealPremio = p.worstCaseCost;
-          aclaracionCosto = `Tope estimado de descuento directo aplicado en la cuenta.`;
+          aclaracionCosto = `Descuento directo del 50% aplicado en factura (tope $${p.worstCaseCost.toLocaleString('es-AR')}).`;
         }
 
-        const gananciaLimpia = gananciaBrutaPrevia - costoRealPremio;
         const pctCostoReal = ((costoRealPremio / gastoAcumulado) * 100).toFixed(1);
+        const crec = Number(stateB.config.recommendedPercent);
+        const isWithinLimit = Number(pctCostoReal) <= crec + 0.1;
+        const holgura = (crec - Number(pctCostoReal)).toFixed(1);
+        const valorPuntoPremio = (costoRealPremio / pts).toFixed(1);
+        const valorPuntoMax = Math.round(stateB.config.vPuntoMax);
         const visitasPromedio = Math.ceil(gastoAcumulado / 10000);
 
         if (bodyEl) {
@@ -1138,47 +1162,63 @@
               <!-- TARJETA RADIOGRAFÍA FINANCIERA -->
               <div class="card">
                 <div style="display: flex; justify-content: space-between; align-items: center;">
-                  <span style="font-weight: 700; font-size: 0.82rem; color: #79c0ff;">Balance Estimado por Ciclo de Canje</span>
+                  <span style="font-weight: 700; font-size: 0.82rem; color: #79c0ff;">Validación de Incidencia Real</span>
                   <span style="font-size: 0.65rem; background: rgba(56, 139, 253, 0.15); color: #79c0ff; padding: 2px 6px; border-radius: 4px; font-weight:600;">
                     ${p.name.split('(')[0].trim()}
                   </span>
                 </div>
 
-                <div style="font-size: 0.71rem; color: var(--text-muted); line-height: 1.35;">
-                  Para alcanzar <b>${pts} Puntos</b>, este cliente acumularía consumos aproximados por:
+                <!-- HERO: INCIDENCIA REAL VS OBJETIVO -->
+                <div style="background: ${isWithinLimit ? 'rgba(35, 134, 54, 0.12)' : 'rgba(210, 153, 34, 0.12)'}; border: 1px solid ${isWithinLimit ? '#238636' : '#d29922'}; border-radius: 8px; padding: 10px 12px; text-align: center;">
+                  <div style="font-size: 0.66rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600;">
+                    Costo del premio sobre ventas requeridas
+                  </div>
+                  <div style="font-size: 1.65rem; font-weight: 800; color: ${isWithinLimit ? '#56d364' : '#f59e0b'}; margin: 2px 0;">
+                    ${pctCostoReal}%
+                  </div>
+                  <div style="font-size: 0.74rem; font-weight: 700; color: ${isWithinLimit ? '#56d364' : '#f59e0b'};">
+                    ${isWithinLimit 
+                      ? `✓ Dentro de tu objetivo seguro (${crec}%)` 
+                      : `⚠️ Supera el costo objetivo (${crec}%)`}
+                  </div>
+                  <div style="font-size: 0.65rem; color: var(--text-muted); margin-top: 3px;">
+                    ${isWithinLimit 
+                      ? `Este premio te cuesta ${pctCostoReal}% de las ventas acumuladas necesarias. Margen de seguridad: +${holgura}%.`
+                      : `Conviene calibrar puntos para no superar tu techo de retorno.`}
+                  </div>
                 </div>
 
+                <!-- DESGLOSE UNITARIO -->
                 <div style="background: #0d0f15; border: 1px solid #1c2230; border-radius: 6px; padding: 9px 11px; display: flex; flex-direction: column; gap: 6px; font-size: 0.73rem;">
                   <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <span style="color: var(--text);">• Ventas acumuladas requeridas:</span>
-                    <b style="color: #79c0ff; font-size: 0.84rem;">~$${gastoAcumulado.toLocaleString('es-AR')}</b>
+                    <span style="color: var(--text-muted);">• Ventas previas necesarias:</span>
+                    <b style="color: #79c0ff; font-size: 0.82rem;">$${gastoAcumulado.toLocaleString('es-AR')}</b>
                   </div>
-                  <div style="color: var(--text-muted); font-size: 0.66rem; padding-left: 8px; margin-top: -3px;">
-                    (~${visitasPromedio} visitas promedio estimadas con regla $1.000 = 1 pt)
-                  </div>
-
-                  <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 2px;">
-                    <span style="color: var(--text);">• Contribución marginal previa (${m}% margen):</span>
-                    <b style="color: #56d364; font-size: 0.84rem;">+$${gananciaBrutaPrevia.toLocaleString('es-AR')}</b>
+                  <div style="color: var(--text-muted); font-size: 0.65rem; padding-left: 8px; margin-top: -3px;">
+                    (~${visitasPromedio} visitas promedio con regla $1.000 = 1 pt)
                   </div>
 
                   <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <span style="color: #ff7b72;">• Costo directo estimado del premio:</span>
-                    <b style="color: #ff7b72; font-size: 0.84rem;">-$${costoRealPremio.toLocaleString('es-AR')}</b>
+                    <span style="color: var(--text-muted);">• Costo real del premio para el local:</span>
+                    <b style="color: #ff7b72; font-size: 0.82rem;">-$${costoRealPremio.toLocaleString('es-AR')}</b>
                   </div>
                   <div style="color: var(--text-muted); font-size: 0.65rem; padding-left: 8px; margin-top: -3px;">
                     *${aclaracionCosto}
                   </div>
 
-                  <div style="height: 1px; background: #232838; margin: 3px 0;"></div>
+                  <div style="height: 1px; background: #232838; margin: 2px 0;"></div>
 
                   <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <span style="font-weight: 700; color: #fff;">MARGEN BRUTO REMANENTE ESTIMADO:</span>
-                    <span style="font-size: 1.05rem; font-weight: 800; color: #56d364;">+$${gananciaLimpia.toLocaleString('es-AR')}</span>
+                    <span style="color: var(--text-muted);">• Valor de canje de este premio:</span>
+                    <b style="color: #fff; font-size: 0.82rem;">$${valorPuntoPremio} / pt</b>
                   </div>
-                  <div style="font-size: 0.68rem; color: #56d364; text-align: right; font-weight: 600;">
-                    *Incidencia estimada del premio: ~${pctCostoReal}% sobre las ventas previas requeridas
+                  <div style="color: var(--text-muted); font-size: 0.65rem; padding-left: 8px; margin-top: -3px;">
+                    (Límite máximo seguro fijado: $${valorPuntoMax} / pt)
                   </div>
+                </div>
+
+                <div style="font-size: 0.68rem; color: var(--text-muted); line-height: 1.35; padding: 0 2px;">
+                  💡 <b>Validación técnica:</b> Para llevarse un beneficio de <b>$${costoRealPremio.toLocaleString('es-AR')}</b>, el cliente debe dejar previamente en caja <b>$${gastoAcumulado.toLocaleString('es-AR')}</b>. El programa no compromete margen imprevisto.
                 </div>
               </div>
 
