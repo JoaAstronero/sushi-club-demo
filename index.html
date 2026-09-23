@@ -898,7 +898,7 @@
             ${optionsHtml}
 
             <div class="alert-box info" style="margin-top: 6px; font-size: 0.7rem;">
-              💡 <b>Efecto reinicio incentivado:</b> Al canjear, el cliente no queda en cero; se le acreditan puntos base (+20 pts) para reducir la fricción psicológica de volver a empezar.
+              💡 <b>Efecto reinicio incentivado:</b> Al canjear, el cliente no queda en cero; se le acreditan puntos base (+20 pts). <i>Este costo de activación continua ya está contemplado en los cálculos del programa.</i>
             </div>
 
             <button class="btn btn-outline" style="margin-top: 6px;" onclick="startStoryB(2)">Volver a Cobro de Caja</button>
@@ -1245,7 +1245,10 @@
         
         // Cuentas unitarias por cliente:
         const pts = p.points;
-        const gastoAcumulado = pts * stateB.config.ratioSpend; // ej. 210.000
+        const bonoBienvenida = 20; // Puntos regalados de bienvenida
+        const ptsPagados1erCanje = Math.max(10, pts - bonoBienvenida);
+        const gasto1erCanje = ptsPagados1erCanje * stateB.config.ratioSpend; // ej. 190.000 para 210 pts
+        const gastoRegular = pts * stateB.config.ratioSpend; // ej. 210.000
         
         let costoRealPremio = 0;
         let aclaracionCosto = "";
@@ -1257,19 +1260,24 @@
           aclaracionCosto = `Descuento directo del 50% aplicado en factura (tope $${p.worstCaseCost.toLocaleString('es-AR')}).`;
         }
 
-        const pctCostoReal = gastoAcumulado > 0 ? ((costoRealPremio / gastoAcumulado) * 100).toFixed(1) : "0.0";
+        // Tasa real del primer canje (absorbiendo los 20 pts de regalo de bienvenida):
+        const pct1erCanje = gasto1erCanje > 0 ? ((costoRealPremio / gasto1erCanje) * 100).toFixed(1) : "0.0";
+        // Tasa regular en canjes posteriores sin bono:
+        const pctRegular = gastoRegular > 0 ? ((costoRealPremio / gastoRegular) * 100).toFixed(1) : "0.0";
+
         const crec = Number(stateB.config.recommendedPercent);
         const cmax = Number(stateB.config.maxSafePercent);
         
-        const isDeficit = Number(pctCostoReal) > cmax + 0.05;
-        const isWarning = (!isDeficit) && (Number(pctCostoReal) > crec + 0.05);
+        // La validación evalúa el 1er canje (caso más exigente por absorber el regalo inicial)
+        const isDeficit = Number(pct1erCanje) > cmax + 0.05;
+        const isWarning = (!isDeficit) && (Number(pct1erCanje) > crec + 0.05);
         const isSafe = !isDeficit && !isWarning;
         
         const safePointsTarget = Math.ceil((costoRealPremio / (crec / 100 * stateB.config.ratioSpend)) / 10) * 10;
         const safePointsFloor = Math.ceil((costoRealPremio / (cmax / 100 * stateB.config.ratioSpend)) / 10) * 10;
         const valorPuntoPremio = pts > 0 ? (costoRealPremio / pts).toFixed(1) : "0.0";
         const valorPuntoMax = Math.round(stateB.config.vPuntoMax);
-        const visitasPromedio = Math.ceil(gastoAcumulado / 10000);
+        const visitas1erCanje = Math.ceil(gasto1erCanje / 10000);
 
         let heroHtml = '';
         if (isDeficit) {
@@ -1279,13 +1287,13 @@
                 🚨 BENEFICIO FUERA DE RANGO SEGURO
               </div>
               <div style="font-size: 1.8rem; font-weight: 900; color: #ff7b72; margin: 2px 0;">
-                ${pctCostoReal}%
+                ${pct1erCanje}%
               </div>
               <div style="font-size: 0.74rem; font-weight: 700; color: #ff7b72;">
-                Supera tu techo máximo (${cmax}%) por +${(Number(pctCostoReal) - cmax).toFixed(1)} puntos
+                Supera tu techo máximo (${cmax}%) por +${(Number(pct1erCanje) - cmax).toFixed(1)} puntos
               </div>
               <div style="font-size: 0.67rem; color: #e6edf3; margin-top: 6px; line-height: 1.35; text-align: left; background: rgba(0,0,0,0.3); padding: 7px 9px; border-radius: 6px; border-left: 3px solid #ff7b72;">
-                <b>Riesgo directo de déficit:</b> Este premio es demasiado generoso para el volumen que exige (${pts} PTS). Cada canje absorbe más margen del que el cliente aporta en sus visitas.
+                <b>Riesgo de déficit (con bono incluido):</b> Como el cliente recibe 20 pts gratis, solo paga $${gasto1erCanje.toLocaleString('es-AR')}, dejando un costo de $${costoRealPremio.toLocaleString('es-AR')} que absorbe más margen del tolerable.
               </div>
               <button class="btn" style="background: #e04a3f; color: #fff; margin-top: 8px; font-weight: 700; font-size: 0.73rem; padding: 7px 10px; border: none; border-radius: 5px; cursor: pointer; width: 100%;" onclick="resetPrizePointsSafe(${activeIdx}, ${safePointsTarget})">
                 ↺ AJUSTAR A PUNTOS SEGUROS (${safePointsTarget} PTS)
@@ -1299,13 +1307,13 @@
                 ⚠️ EXCEDE OBJETIVO · CONSUME COLCHÓN
               </div>
               <div style="font-size: 1.65rem; font-weight: 800; color: #f59e0b; margin: 2px 0;">
-                ${pctCostoReal}%
+                ${pct1erCanje}%
               </div>
               <div style="font-size: 0.73rem; font-weight: 700; color: #f59e0b;">
-                Supera tu objetivo (${crec}%) sin romper el techo (${cmax}%)
+                Tasa efectiva en 1er canje con bono de 20 pts
               </div>
               <div style="font-size: 0.66rem; color: var(--text-muted); margin-top: 4px;">
-                Consume parte del margen de resguardo. Podés calibrarlo a ${safePointsTarget} PTS para volver al objetivo recomendado.
+                En el 1er canje absorbe <b>${pct1erCanje}%</b> (consume colchón). En canjes siguientes sin bono se normaliza a <b>${pctRegular}%</b>.
               </div>
               <button class="btn" style="background: #232836; color: #e6edf3; border: 1px solid #3b455b; margin-top: 6px; font-weight: 600; font-size: 0.7rem; padding: 5px 8px; border-radius: 4px; cursor: pointer; width: 100%;" onclick="resetPrizePointsSafe(${activeIdx}, ${safePointsTarget})">
                 ↺ Calibrar a ${safePointsTarget} PTS
@@ -1316,16 +1324,16 @@
           heroHtml = `
             <div style="background: rgba(35, 134, 54, 0.12); border: 1px solid #238636; border-radius: 8px; padding: 10px 12px; text-align: center;">
               <div style="font-size: 0.66rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600;">
-                Costo del premio sobre ventas requeridas
+                Costo sobre ventas (1er canje con bono incluido)
               </div>
               <div style="font-size: 1.65rem; font-weight: 800; color: #56d364; margin: 2px 0;">
-                ${pctCostoReal}%
+                ${pct1erCanje}%
               </div>
               <div style="font-size: 0.74rem; font-weight: 700; color: #56d364;">
                 ✓ Dentro de tu objetivo seguro (${crec}%)
               </div>
               <div style="font-size: 0.65rem; color: var(--text-muted); margin-top: 3px;">
-                Este premio te cuesta ${pctCostoReal}% de las ventas acumuladas necesarias. Colchón frente al techo: +${(cmax - Number(pctCostoReal)).toFixed(1)}%.
+                <b>Bono de 20 pts ya absorbido.</b> En ciclos siguientes sin bono de bienvenida desciende a <b>${pctRegular}%</b>.
               </div>
             </div>
           `;
@@ -1335,7 +1343,7 @@
         if (isDeficit) {
           footerNote = `🚨 <b>Acción recomendada:</b> Subí este premio a un mínimo de <b>${safePointsFloor} PTS</b> (o <b>${safePointsTarget} PTS</b> para objetivo calibrado) antes de habilitarlo en caja.`;
         } else {
-          footerNote = `💡 <b>Validación técnica:</b> Para llevarse un beneficio de <b>$${costoRealPremio.toLocaleString('es-AR')}</b>, el cliente debe dejar previamente en caja <b>$${gastoAcumulado.toLocaleString('es-AR')}</b>. El programa no compromete margen imprevisto.`;
+          footerNote = `💡 <b>Transparencia económica:</b> El bono inicial de 20 pts ($20.000 en consumo bonificado) ya está computado en el costo del primer canje (${pct1erCanje}%). No hay costos ocultos.`;
         }
 
         if (bodyEl) {
@@ -1356,11 +1364,11 @@
                 <!-- DESGLOSE UNITARIO -->
                 <div style="background: #0d0f15; border: 1px solid #1c2230; border-radius: 6px; padding: 9px 11px; display: flex; flex-direction: column; gap: 6px; font-size: 0.73rem;">
                   <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <span style="color: var(--text-muted);">• Ventas previas necesarias:</span>
-                    <b style="color: #79c0ff; font-size: 0.82rem;">$${gastoAcumulado.toLocaleString('es-AR')}</b>
+                    <span style="color: var(--text-muted);">• Ventas pagadas en caja (1er canje):</span>
+                    <b style="color: #79c0ff; font-size: 0.82rem;">$${gasto1erCanje.toLocaleString('es-AR')}</b>
                   </div>
                   <div style="color: var(--text-muted); font-size: 0.65rem; padding-left: 8px; margin-top: -3px;">
-                    (~${visitasPromedio} visitas promedio con regla $1.000 = 1 pt)
+                    (Paga <b>${ptsPagados1erCanje} pts</b> en caja + <b>20 pts</b> bonificados al ingresar)
                   </div>
 
                   <div style="display: flex; justify-content: space-between; align-items: center;">
@@ -1372,6 +1380,14 @@
                   </div>
 
                   <div style="height: 1px; background: #232838; margin: 2px 0;"></div>
+
+                  <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span style="color: var(--text-muted);">• Incidencia efectiva (1er canje con bono):</span>
+                    <b style="color: ${isDeficit ? '#ff7b72' : '#56d364'}; font-size: 0.82rem;">${pct1erCanje}%</b>
+                  </div>
+                  <div style="color: var(--text-muted); font-size: 0.65rem; padding-left: 8px; margin-top: -3px;">
+                    *<b>Sí considera el bono.</b> En canjes siguientes sin bono desciende a <b>${pctRegular}%</b>.
+                  </div>
 
                   <div style="display: flex; justify-content: space-between; align-items: center;">
                     <span style="color: var(--text-muted);">• Valor de canje de este premio:</span>
@@ -1401,7 +1417,10 @@
                   Sumás 1 punto cada <b>$1.000</b>.<br>
                   Tu meta para <b>${p.name}</b> es de <b>${p.points} Puntos</b>.
                   <div style="margin-top: 8px; display: flex; justify-content: space-between; align-items: center; background: #111b21; padding: 6px 10px; border-radius: 6px;">
-                    <span style="color: var(--text-muted); font-size: 0.68rem;">Saldo de Bienvenida:</span>
+                    <div>
+                      <span style="color: var(--text-muted); font-size: 0.68rem;">Saldo de Bienvenida:</span>
+                      <div style="color: #56d364; font-size: 0.6rem; font-weight: 600;">✓ Costo absorbido en el 1er canje (${pct1erCanje}%)</div>
+                    </div>
                     <b style="color: #56d364; font-size: 0.85rem;">20 PTS</b>
                   </div>
                 </div>
